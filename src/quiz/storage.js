@@ -3,6 +3,7 @@
 
 import { SCHEMA_VERSION } from './engine'
 import { demoQuiz } from './demoQuiz'
+import kodreeQuiz from './kodreeQuiz.json'
 
 const LIB_KEY = `quizbuilder.library.v${SCHEMA_VERSION}`
 const RESPONSES_KEY = `quizbuilder.responses.v${SCHEMA_VERSION}`
@@ -18,15 +19,23 @@ function clearStaleKeys() {
   stale.forEach((k) => localStorage.removeItem(k))
 }
 
+const snapshot = (q) => ({
+  version: 1,
+  publishedAt: new Date().toISOString(),
+  quiz: structuredClone(q),
+})
+
 function defaultLibrary() {
   const demo = structuredClone(demoQuiz)
+  // the Kodree clone ships too — proof we can parse competitor/sibling
+  // funnels into our format and iterate on them here
+  const kodree = structuredClone(kodreeQuiz)
   return {
     activeId: demo.id,
-    quizzes: { [demo.id]: demo },
-    // production snapshots, keyed by quiz id — the demo ships pre-published
-    published: {
-      [demo.id]: { version: 1, publishedAt: new Date().toISOString(), quiz: structuredClone(demo) },
-    },
+    quizzes: { [demo.id]: demo, [kodree.id]: kodree },
+    // production snapshots, keyed by quiz id — both ship pre-published
+    published: { [demo.id]: snapshot(demo), [kodree.id]: snapshot(kodree) },
+    kodreeSeeded: true,
   }
 }
 
@@ -41,7 +50,18 @@ export function loadLibrary() {
         if (!lib.published) {
           lib.published = {}
           for (const [id, q] of Object.entries(lib.quizzes)) {
-            lib.published[id] = { version: 1, publishedAt: new Date().toISOString(), quiz: structuredClone(q) }
+            lib.published[id] = snapshot(q)
+          }
+          saveLibrary(lib)
+        }
+        // migration: seed the Kodree clone once into pre-existing libraries
+        // (the flag lets people delete it without it reappearing)
+        if (!lib.kodreeSeeded) {
+          lib.kodreeSeeded = true
+          if (!lib.quizzes[kodreeQuiz.id]) {
+            const kodree = structuredClone(kodreeQuiz)
+            lib.quizzes[kodree.id] = kodree
+            lib.published[kodree.id] = snapshot(kodree)
           }
           saveLibrary(lib)
         }
