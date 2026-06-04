@@ -11,6 +11,7 @@ import JsonTab from './JsonTab'
 import DemoTab from './DemoTab'
 import LibraryTab from './LibraryTab'
 import FlowMapTab from './FlowMapTab'
+import HowToTab from './HowToTab'
 
 // The CMS. 3 panes: screen list / editor / live phone preview.
 export default function Builder() {
@@ -147,7 +148,7 @@ export default function Builder() {
           className="w-72 rounded-lg border border-transparent px-2 py-1 text-[13px] font-semibold text-slate-500 outline-none transition-colors hover:border-slate-200 focus:border-indigo-300 focus:text-slate-800"
         />
         <nav className="mx-auto flex gap-1 rounded-full bg-slate-100 p-1">
-          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['library', '📚 Library'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['demo', '🎬 Demo']].map(([key, label]) => (
+          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['library', '📚 Library'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['demo', '🎬 Demo'], ['howto', '📖 How to']].map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -204,6 +205,8 @@ export default function Builder() {
         <JsonTab quiz={quiz} setQuiz={setQuiz} />
       ) : tab === 'demo' ? (
         <DemoTab />
+      ) : tab === 'howto' ? (
+        <HowToTab />
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[270px_minmax(360px,1fr)_440px]">
           <aside className="min-h-0 border-r border-slate-200 bg-white">
