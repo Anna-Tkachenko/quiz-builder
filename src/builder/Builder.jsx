@@ -226,6 +226,7 @@ export default function Builder() {
                 screen={selectedScreen}
                 screens={quiz.screens}
                 variantParam={quiz.variantParam}
+                variantCopy={quiz.variants?.default?.copy}
                 patch={(p) => patchScreen(selectedScreen.id, p)}
               />
             )}

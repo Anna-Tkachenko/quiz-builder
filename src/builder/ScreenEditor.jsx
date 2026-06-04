@@ -8,8 +8,10 @@ const LAYOUTS = [
   { value: 'cards', label: 'Cards', pict: '🃏' },
 ]
 
+import { interpolate } from '../quiz/engine'
+
 // Middle pane: edit the selected screen. Field set depends on screen.type.
-export default function ScreenEditor({ screen, patch, screens = [], variantParam }) {
+export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy }) {
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
 
@@ -73,7 +75,9 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
 
       {has('options') && <OptionsEditor screen={screen} patch={patch} />}
 
-      {has('options') && <FlowEditor screen={screen} screens={screens} patch={patch} />}
+      {has('options') && (
+        <FlowEditor screen={screen} screens={screens} patch={patch} variantCopy={variantCopy} />
+      )}
 
       {has('steps') && (
         <Section title="Loader">
@@ -367,11 +371,16 @@ function ItemsEditor({ screen, patch }) {
 // engine's conditional `next` rules. Leave everything on "Next in order"
 // for a linear quiz; pick targets to branch. Single-select branches on
 // equality, multi-select on "selection includes".
-function FlowEditor({ screen, screens, patch }) {
+function FlowEditor({ screen, screens, patch, variantCopy }) {
   const saveAs = screen.saveAs
   const op = screen.type === 'multi-select' ? 'contains' : 'eq'
   const options = screen.options || []
   const targets = screens.filter((s) => s.id !== screen.id)
+  // human-readable target label: icon + question/screen title
+  const targetLabel = (s) => {
+    const title = interpolate(s.title, {}, variantCopy).replace(/\s+/g, ' ').trim()
+    return `${TYPE_META[s.type]?.icon ?? ''} ${title.slice(0, 44) || s.id}`
+  }
 
   // decompile current rules into per-answer map + fallback
   const rules = Array.isArray(screen.next)
@@ -434,7 +443,7 @@ function FlowEditor({ screen, screens, patch }) {
             >
               <option value="">Next in order</option>
               {targets.map((s) => (
-                <option key={s.id} value={s.id}>{s.id}</option>
+                <option key={s.id} value={s.id}>{targetLabel(s)}</option>
               ))}
             </select>
           </div>
@@ -450,7 +459,7 @@ function FlowEditor({ screen, screens, patch }) {
         >
           <option value="">Next in order</option>
           {targets.map((s) => (
-            <option key={s.id} value={s.id}>{s.id}</option>
+            <option key={s.id} value={s.id}>{targetLabel(s)}</option>
           ))}
         </select>
       </div>
