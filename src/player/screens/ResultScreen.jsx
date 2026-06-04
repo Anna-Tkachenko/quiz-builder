@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
-import { PrimaryButton } from '../ui'
+import { PrimaryButton, Visual } from '../ui'
 
 export default function ResultScreen({ screen, t, onComplete }) {
   const fired = useRef(false)
@@ -13,7 +13,11 @@ export default function ResultScreen({ screen, t, onComplete }) {
   return (
     <div className="flex flex-1 flex-col justify-between px-6 pb-8 pt-10 text-center">
       <div className="flex flex-1 flex-col items-center justify-center">
-        {screen.emoji && <div className="animate-pop-in mb-4 text-6xl">{screen.emoji}</div>}
+        <Visual
+          value={screen.emoji}
+          textClassName="animate-pop-in mb-4 block text-6xl"
+          imgClassName="animate-pop-in mb-4 max-h-36 w-auto max-w-[240px] rounded-2xl object-cover shadow-md"
+        />
         <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-slate-900">
           {t(screen.title)}
         </h1>

@@ -1,4 +1,4 @@
-import { ScreenTitle, ScreenSubtitle } from '../ui'
+import { ScreenTitle, ScreenSubtitle, Visual } from '../ui'
 
 // layout: 'list' | 'grid' | 'cards' — same logical type, different presentation.
 export default function SingleSelectScreen({ screen, t, onAnswer }) {
@@ -29,7 +29,7 @@ export default function SingleSelectScreen({ screen, t, onAnswer }) {
               onClick={() => pick(opt)}
               className="flex flex-col items-center gap-2 rounded-2xl border-2 border-transparent bg-white px-4 py-6 shadow-sm transition-all duration-150 hover:border-[var(--q-primary)] hover:shadow-md active:scale-[0.97]"
             >
-              <span className="text-4xl">{opt.icon}</span>
+              <Visual value={opt.icon} textClassName="text-4xl" imgClassName="h-14 w-14 rounded-xl object-cover" />
               <span className="text-[15px] font-bold text-slate-800">{t(opt.label)}</span>
             </button>
           ) : layout === 'grid' ? (
@@ -39,7 +39,7 @@ export default function SingleSelectScreen({ screen, t, onAnswer }) {
               onClick={() => pick(opt)}
               className="flex items-center justify-center gap-2 rounded-2xl border-2 border-transparent bg-white px-4 py-4 shadow-sm transition-all duration-150 hover:border-[var(--q-primary)] hover:shadow-md active:scale-[0.97]"
             >
-              {opt.icon && <span className="text-xl">{opt.icon}</span>}
+              <Visual value={opt.icon} textClassName="text-xl" imgClassName="h-7 w-7 rounded-lg object-cover" />
               <span className="text-[15px] font-semibold text-slate-800">{t(opt.label)}</span>
             </button>
           ) : (
@@ -49,7 +49,7 @@ export default function SingleSelectScreen({ screen, t, onAnswer }) {
               onClick={() => pick(opt)}
               className="flex items-center gap-3 rounded-2xl border-2 border-transparent bg-white px-5 py-4 text-left shadow-sm transition-all duration-150 hover:border-[var(--q-primary)] hover:shadow-md active:scale-[0.98]"
             >
-              {opt.icon && <span className="text-2xl">{opt.icon}</span>}
+              <Visual value={opt.icon} textClassName="text-2xl" imgClassName="h-9 w-9 rounded-lg object-cover" />
               <span className="text-[15px] font-semibold text-slate-800">{t(opt.label)}</span>
             </button>
           )

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PrimaryButton, ScreenTitle, ScreenSubtitle } from '../ui'
+import { PrimaryButton, ScreenTitle, ScreenSubtitle, Visual } from '../ui'
 
 export default function MultiSelectScreen({ screen, t, onAnswer }) {
   const [selected, setSelected] = useState([])
@@ -31,7 +31,7 @@ export default function MultiSelectScreen({ screen, t, onAnswer }) {
                 on ? 'border-[var(--q-primary)] bg-[color-mix(in_srgb,var(--q-primary)_6%,white)]' : 'border-transparent hover:shadow-md'
               }`}
             >
-              {opt.icon && <span className="text-2xl">{opt.icon}</span>}
+              <Visual value={opt.icon} textClassName="text-2xl" imgClassName="h-9 w-9 rounded-lg object-cover" />
               <span className="flex-1 text-[15px] font-semibold text-slate-800">{t(opt.label)}</span>
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-lg border-2 text-xs font-bold text-white transition-all ${

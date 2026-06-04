@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TYPE_META } from './meta'
-import { Section, TextField, AreaField, NumField, Field } from './fields'
+import { Section, TextField, AreaField, NumField, Field, VisualField } from './fields'
 
 const LAYOUTS = [
   { value: 'list', label: 'List', pict: '☰' },
@@ -39,7 +39,7 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
 
       <Section title="Content">
         {has('badge') && <TextField label="Badge" value={screen.badge} onChange={(v) => patch({ badge: v })} />}
-        {has('emoji') && <TextField label="Emoji / visual" value={screen.emoji} onChange={(v) => patch({ emoji: v })} placeholder="💡" />}
+        {has('emoji') && <VisualField label="Visual (emoji, image URL, or pick a file)" value={screen.emoji} onChange={(v) => patch({ emoji: v })} />}
         <AreaField label="Title  (supports {{variables}})" rows={2} value={screen.title} onChange={(v) => patch({ title: v })} />
         {has('subtitle') && <AreaField label="Subtitle" rows={2} value={screen.subtitle} onChange={(v) => patch({ subtitle: v })} />}
         {has('text') && <AreaField label="Text" rows={3} value={screen.text} onChange={(v) => patch({ text: v })} />}
@@ -285,7 +285,7 @@ function OptionsEditor({ screen, patch }) {
             value={opt.icon ?? ''}
             onChange={(e) => update(i, { icon: e.target.value })}
             placeholder="🙂"
-            title="Emoji icon"
+            title="Emoji icon — or paste an image URL"
             className="w-12 rounded-xl border border-slate-200 bg-white px-0 py-2 text-center text-[15px] outline-none focus:border-indigo-400"
           />
           <input

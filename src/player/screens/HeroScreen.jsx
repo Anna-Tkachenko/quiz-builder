@@ -1,4 +1,4 @@
-import { PrimaryButton } from '../ui'
+import { PrimaryButton, Visual } from '../ui'
 
 export default function HeroScreen({ screen, t, onNext }) {
   return (
@@ -9,7 +9,11 @@ export default function HeroScreen({ screen, t, onNext }) {
             {t(screen.badge)}
           </span>
         )}
-        {screen.emoji && <div className="mb-4 text-6xl">{screen.emoji}</div>}
+        <Visual
+          value={screen.emoji}
+          textClassName="mb-4 block text-6xl"
+          imgClassName="mb-5 max-h-44 w-auto max-w-[260px] rounded-2xl object-cover shadow-md"
+        />
         <h1 className="text-[32px] font-extrabold leading-[1.15] tracking-tight text-slate-900">
           {t(screen.title)}
         </h1>

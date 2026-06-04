@@ -14,6 +14,15 @@ export function PrimaryButton({ children, onClick, disabled }) {
   )
 }
 
+import { isImageValue } from '../lib/visual'
+
+// Renders screen.emoji / option.icon as emoji text or an <img>.
+export function Visual({ value, textClassName, imgClassName }) {
+  if (!value) return null
+  if (isImageValue(value)) return <img src={value} alt="" className={imgClassName} />
+  return <span className={textClassName}>{value}</span>
+}
+
 export function ScreenTitle({ children }) {
   return (
     <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-slate-900">
