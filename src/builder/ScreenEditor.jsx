@@ -13,19 +13,19 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
 
-  // Variables a condition can reference: every saved answer + the variant
-  // param + common UTMs. Power users can type anything in Advanced JSON.
-  const vars = [
-    ...new Set(
-      [
-        ...screens.map((s) => s.saveAs),
-        variantParam,
-        'utm_source',
-        'utm_content',
-        'utm_campaign',
-      ].filter(Boolean)
-    ),
-  ]
+  // Variables a condition can reference, grouped for humans:
+  // answers (shown with their question title) + link params.
+  const seen = new Set()
+  const answerVars = screens
+    .filter((s) => s.saveAs && s.id !== screen.id && !seen.has(s.saveAs) && seen.add(s.saveAs))
+    .map((s) => ({
+      key: s.saveAs,
+      label: String(s.title || s.id).replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 48),
+    }))
+  const paramVars = [
+    ...new Set([variantParam, 'utm_source', 'utm_content', 'utm_campaign'].filter(Boolean)),
+  ].filter((k) => !seen.has(k))
+  const vars = { answers: answerVars, params: paramVars, first: answerVars[0]?.key ?? paramVars[0] ?? '' }
 
   return (
     <div className="p-5">
@@ -126,22 +126,37 @@ const OPS = [
 ]
 
 // One condition as a sentence: [answer ▾] [is ▾] [value].
+// The variable picker is grouped: answers show their question title,
+// link params show as ?param=.
 function ConditionEditor({ cond, onChange, vars, screens }) {
-  const c = cond || { var: vars[0] || '', op: 'eq', value: '' }
+  const c = cond || { var: vars.first, op: 'eq', value: '' }
   const set = (p) => onChange({ ...c, ...p })
   // suggest the answer options of the screen that saves this variable
   const sourceScreen = screens.find((s) => s.saveAs === c.var && s.options)
   const listId = `cond-values-${c.var}`
+  const known =
+    vars.answers.some((v) => v.key === c.var) || vars.params.includes(c.var)
   const sel =
     'rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-semibold text-slate-600 outline-none focus:border-indigo-400'
 
   return (
     <div className="flex items-center gap-2">
-      <select value={c.var} onChange={(e) => set({ var: e.target.value })} className={sel}>
-        {!vars.includes(c.var) && c.var && <option value={c.var}>{c.var}</option>}
-        {vars.map((v) => (
-          <option key={v} value={v}>{v}</option>
-        ))}
+      <select value={c.var} onChange={(e) => set({ var: e.target.value })} className={sel + ' max-w-[240px]'}>
+        {!known && c.var && <option value={c.var}>{c.var}</option>}
+        {vars.answers.length > 0 && (
+          <optgroup label="Answer to a question">
+            {vars.answers.map((v) => (
+              <option key={v.key} value={v.key}>“{v.label}” ({v.key})</option>
+            ))}
+          </optgroup>
+        )}
+        {vars.params.length > 0 && (
+          <optgroup label="From the link (URL param)">
+            {vars.params.map((k) => (
+              <option key={k} value={k}>?{k}=</option>
+            ))}
+          </optgroup>
+        )}
       </select>
       <select value={c.op} onChange={(e) => set({ op: e.target.value })} className={sel}>
         {OPS.map(([op, label]) => (
@@ -188,7 +203,7 @@ function VisibilityEditor({ screen, patch, vars, screens }) {
         </button>
         <button
           type="button"
-          onClick={() => !conditional && patch({ show: { var: vars[0] || '', op: 'eq', value: '' } })}
+          onClick={() => !conditional && patch({ show: { var: vars.first, op: 'eq', value: '' } })}
           className={`flex-1 rounded-xl border-2 py-2 text-[12px] font-bold transition-colors ${
             conditional ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'
           }`}
@@ -244,7 +259,7 @@ function ConditionalTextEditor({ screen, patch, vars, screens }) {
         type="button"
         onClick={() =>
           patch({
-            conditionalText: [...list, { when: { var: vars[0] || '', op: 'eq', value: '' }, text: '' }],
+            conditionalText: [...list, { when: { var: vars.first, op: 'eq', value: '' }, text: '' }],
           })
         }
         className="rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
