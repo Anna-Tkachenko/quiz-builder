@@ -5,7 +5,19 @@ A marketing quiz funnel platform: a marketer assembles a quiz in the **builder
 plays it — branching, query-param variants, variables, theming — with no
 developer in the loop per quiz.
 
-## Run
+## 🔗 Live demo
+
+| View | URL |
+|---|---|
+| **Builder — start at the 🎬 Demo tab** | [anna-tkachenko.github.io/quiz-builder/#/builder](https://anna-tkachenko.github.io/quiz-builder/#/builder) |
+| Live quiz (default angle) | [anna-tkachenko.github.io/quiz-builder/](https://anna-tkachenko.github.io/quiz-builder/) |
+| Live quiz (`?angle=switch`) | […/quiz-builder/?angle=switch](https://anna-tkachenko.github.io/quiz-builder/?angle=switch) |
+
+Everything runs client-side (localStorage) — every visitor gets their own
+sandbox with the demo quiz pre-published. Edit, publish, break things freely;
+“Reset demo” restores the original.
+
+## Run locally
 
 ```bash
 nvm use && npm install && npm run dev
