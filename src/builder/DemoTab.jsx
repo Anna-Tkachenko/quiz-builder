@@ -62,6 +62,7 @@ const STEPS = [
       'The JSON tab shows the whole quiz as a single document — the contract between this CMS and the renderer.',
       'Hand-off №1 — Publish: the live player serves only published snapshots. Edit anything → 🚀 Publish → refresh the live tab: new version. Drafts never leak to production.',
       <>Hand-off №2 — fully headless: the renderer can fetch the document from <em>any URL</em>. <A href={liveUrl('?src=demo-quiz.json')}>This link</A> plays a <code>quiz.json</code> hosted as a plain static file — the CMS isn’t involved at all. Same idea works with S3, a CDN, or an API.</>,
+      <>Hand-off №3 — on <em>your</em> domain: <A href={liveUrl('embed-example.html')}>this mock product page</A> embeds the renderer with one <code>&lt;iframe&gt;</code> — exactly how it would sit on mate.academy or kodree.com. To share a quiz you built with a colleague, download its JSON, host it anywhere, and send them <code>?src=&lt;json-url&gt;</code>.</>,
       'Copy / download / paste-and-apply the JSON. New brand or product = new JSON, same renderer. That’s the ownership play vs. Typeform/Fillout.',
     ],
   },

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <title>Mate academy — embed example</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: #0f0f23; color: #fff; min-height: 100vh; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; }
+    .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: #8b5cf6; }
+    nav { display: flex; gap: 28px; font-size: 14px; font-weight: 700; color: #94a3b8; }
+    .note { margin: 0 auto; max-width: 920px; padding: 8px 24px 0; text-align: center; font-size: 13px;
+            font-weight: 700; color: #8b5cf6; }
+    main { display: grid; grid-template-columns: 1fr 420px; gap: 48px; max-width: 1080px;
+           margin: 32px auto; padding: 0 24px; align-items: center; }
+    h1 { font-size: 44px; font-weight: 800; line-height: 1.1; letter-spacing: -1px; }
+    h1 em { font-style: normal; color: #8b5cf6; }
+    p.sub { margin-top: 16px; font-size: 16px; line-height: 1.6; color: #94a3b8; max-width: 420px; }
+    .quiz-frame { width: 100%; height: 720px; border: 0; border-radius: 24px; background: #fff;
+                  box-shadow: 0 24px 80px rgba(139, 92, 246, .25); }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } h1 { font-size: 32px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">mate <span>academy</span></div>
+    <nav><span>Courses</span><span>Prices</span><span>Reviews</span><span>Jobs</span></nav>
+  </header>
+  <div class="note">⬇ This is a mock product page. The quiz below is the real renderer, embedded
+    with one &lt;iframe&gt; — same idea works on mate.academy, kodree.com, or any domain.</div>
+  <main>
+    <div>
+      <h1>Change your career.<br /><em>Start in IT.</em></h1>
+      <p class="sub">Take the 2-minute quiz and get a personalized learning plan — built from your
+        answers, tied to your ad campaign, fully owned by our team.</p>
+    </div>
+    <!-- The entire integration: -->
+    <iframe class="quiz-frame" src="./?src=demo-quiz.json" title="Career quiz"></iframe>
+  </main>
+</body>
+</html>
