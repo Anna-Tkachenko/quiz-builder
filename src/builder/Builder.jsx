@@ -218,6 +218,7 @@ export default function Builder() {
               <ScreenEditor
                 key={selectedScreen.id}
                 screen={selectedScreen}
+                screens={quiz.screens}
                 patch={(p) => patchScreen(selectedScreen.id, p)}
               />
             )}

@@ -9,7 +9,7 @@ const LAYOUTS = [
 ]
 
 // Middle pane: edit the selected screen. Field set depends on screen.type.
-export default function ScreenEditor({ screen, patch }) {
+export default function ScreenEditor({ screen, patch, screens = [] }) {
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
 
@@ -58,6 +58,8 @@ export default function ScreenEditor({ screen, patch }) {
       )}
 
       {has('options') && <OptionsEditor screen={screen} patch={patch} />}
+
+      {has('options') && <FlowEditor screen={screen} screens={screens} patch={patch} />}
 
       {has('steps') && (
         <Section title="Loader">
@@ -173,6 +175,105 @@ function ItemsEditor({ screen, patch }) {
       >
         + Add row
       </button>
+    </Section>
+  )
+}
+
+// Answer-based flow: per-answer "→ then go to" targets, compiled to the
+// engine's conditional `next` rules. Leave everything on "Next in order"
+// for a linear quiz; pick targets to branch. Single-select branches on
+// equality, multi-select on "selection includes".
+function FlowEditor({ screen, screens, patch }) {
+  const saveAs = screen.saveAs
+  const op = screen.type === 'multi-select' ? 'contains' : 'eq'
+  const options = screen.options || []
+  const targets = screens.filter((s) => s.id !== screen.id)
+
+  // decompile current rules into per-answer map + fallback
+  const rules = Array.isArray(screen.next)
+    ? screen.next
+    : typeof screen.next === 'string'
+      ? [{ goto: screen.next }]
+      : []
+  const perAnswer = {}
+  let defaultGoto = ''
+  for (const r of rules) {
+    if (r.when && r.when.var === saveAs && r.when.op === op) perAnswer[r.when.value] = r.goto
+    else if (!r.when && r.goto) defaultGoto = r.goto
+  }
+
+  const compile = (po, dg) => {
+    const out = []
+    for (const o of options) {
+      const v = o.value ?? o.label
+      if (po[v]) out.push({ when: { var: saveAs, op, value: v }, goto: po[v] })
+    }
+    if (dg) out.push({ goto: dg })
+    patch({ next: out.length ? out : undefined })
+  }
+
+  const setAnswerGoto = (value, goto) => {
+    const po = { ...perAnswer }
+    if (goto) po[value] = goto
+    else delete po[value]
+    compile(po, defaultGoto)
+  }
+
+  if (!saveAs) {
+    return (
+      <Section title="Flow (answer-based branching)">
+        <p className="text-[12px] text-slate-400">
+          Set a variable name in the Data section first — branching matches on the saved answer.
+        </p>
+      </Section>
+    )
+  }
+
+  const sel =
+    'rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-semibold text-slate-600 outline-none focus:border-indigo-400'
+
+  return (
+    <Section title="Flow (answer-based branching)">
+      {options.map((opt, i) => {
+        const v = opt.value ?? opt.label
+        return (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-1/2 truncate text-[13px] font-semibold text-slate-600">
+              {opt.icon && <span className="mr-1.5">{opt.icon}</span>}
+              {opt.label || '—'}
+            </span>
+            <span className="text-slate-300">→</span>
+            <select
+              value={perAnswer[v] ?? ''}
+              onChange={(e) => setAnswerGoto(v, e.target.value)}
+              className={sel + ' flex-1'}
+            >
+              <option value="">Next in order</option>
+              {targets.map((s) => (
+                <option key={s.id} value={s.id}>{s.id}</option>
+              ))}
+            </select>
+          </div>
+        )
+      })}
+      <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
+        <span className="w-1/2 text-[13px] font-semibold text-slate-400">Otherwise</span>
+        <span className="text-slate-300">→</span>
+        <select
+          value={defaultGoto}
+          onChange={(e) => compile(perAnswer, e.target.value)}
+          className={sel + ' flex-1'}
+        >
+          <option value="">Next in order</option>
+          {targets.map((s) => (
+            <option key={s.id} value={s.id}>{s.id}</option>
+          ))}
+        </select>
+      </div>
+      <p className="text-[11px] leading-relaxed text-slate-400">
+        💡 Tip: a target screen with a <code>show</code> condition is auto-skipped for users who
+        don’t match it — that’s how “extra screens for some answers” work.
+      </p>
     </Section>
   )
 }
