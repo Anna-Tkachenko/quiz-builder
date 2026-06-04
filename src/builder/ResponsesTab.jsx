@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { loadResponses, clearResponses, listQuizzes } from '../quiz/storage'
 import { liveUrl } from '../lib/links'
 
@@ -93,7 +93,7 @@ export default function ResponsesTab() {
           </p>
         </div>
       ) : (
-        <ResponsesTable responses={responses} fmt={fmt} />
+        <ResponsesTable responses={responses} fmt={fmt} quizzes={quizzes} />
       )}
     </div>
   )
@@ -121,13 +121,32 @@ function Metric({ label, value, primary }) {
   )
 }
 
-function ResponsesTable({ responses, fmt }) {
+function Meta({ k, v, mono }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt className="w-24 shrink-0 font-semibold text-slate-400">{k}</dt>
+      <dd className={`break-all text-slate-700 ${mono ? 'font-mono text-[11px]' : 'font-bold'}`}>{v}</dd>
+    </div>
+  )
+}
+
+function ResponsesTable({ responses, fmt, quizzes }) {
+  const [openId, setOpenId] = useState(null)
+
+  // map a saveAs variable back to its question title for the detail view
+  const questionFor = (quizId, key) => {
+    const quiz = quizzes.find((q) => q.id === quizId)
+    const screen = quiz?.screens.find((s) => s.saveAs === key)
+    return screen ? String(screen.title || screen.id).replace(/\{\{[^}]*\}\}/g, '…') : key
+  }
+
   return (
     <>
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
           <table className="w-full text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-100 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                <th className="px-4 py-3" />
                 <th className="px-4 py-3">Session</th>
                 <th className="px-4 py-3">Quiz</th>
                 <th className="px-4 py-3">Started</th>
@@ -140,7 +159,12 @@ function ResponsesTable({ responses, fmt }) {
             </thead>
             <tbody>
               {responses.map((r) => (
-                <tr key={r.sessionId} className="border-b border-slate-50 align-top last:border-0">
+                <Fragment key={r.sessionId}>
+                <tr
+                  onClick={() => setOpenId(openId === r.sessionId ? null : r.sessionId)}
+                  className={`cursor-pointer border-b border-slate-50 align-top transition-colors last:border-0 hover:bg-slate-50/70 ${openId === r.sessionId ? 'bg-indigo-50/40' : ''}`}
+                >
+                  <td className="py-3 pl-4 text-[10px] text-slate-400">{openId === r.sessionId ? '▼' : '▶'}</td>
                   <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{r.sessionId}</td>
                   <td className="px-4 py-3 font-mono text-[11px] text-slate-500">
                     {r.quizId || '—'}
@@ -170,6 +194,53 @@ function ResponsesTable({ responses, fmt }) {
                     {r.destination || '—'}
                   </td>
                 </tr>
+                {openId === r.sessionId && (
+                  <tr className="border-b border-slate-50 bg-indigo-50/40">
+                    <td colSpan={9} className="px-6 pb-5 pt-1">
+                      <div className="grid gap-4 md:grid-cols-[1fr_260px]">
+                        {/* Q → A breakdown */}
+                        <div className="rounded-xl bg-white p-4 shadow-sm">
+                          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                            What they answered
+                          </p>
+                          {Object.keys(r.answers || {}).length === 0 ? (
+                            <p className="text-[13px] text-slate-400">
+                              No answers yet — they opened the quiz but didn’t answer anything.
+                            </p>
+                          ) : (
+                            <div className="flex flex-col gap-2.5">
+                              {Object.entries(r.answers).map(([k, v]) => (
+                                <div key={k} className="flex items-baseline gap-3">
+                                  <span className="w-1/2 shrink-0 text-[12px] font-semibold text-slate-400">
+                                    {questionFor(r.quizId, k)}
+                                  </span>
+                                  <span className="text-[13px] font-bold text-slate-800">
+                                    {Array.isArray(v) ? v.join(', ') : String(v)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {/* session meta */}
+                        <div className="rounded-xl bg-white p-4 shadow-sm">
+                          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                            Session
+                          </p>
+                          <dl className="flex flex-col gap-1.5 text-[12px]">
+                            <Meta k="Came from" v={Object.entries(r.params || {}).map(([k, v]) => `${k}=${v}`).join(' · ') || 'direct (no params)'} />
+                            <Meta k="Variant" v={r.variant || 'default'} />
+                            {r.quizVersion && <Meta k="Quiz version" v={`v${r.quizVersion}`} />}
+                            <Meta k="Started" v={fmt(r.startedAt)} />
+                            <Meta k="Finished" v={r.completed ? fmt(r.completedAt) : 'not finished'} />
+                            {r.destination && <Meta k="Sent to" v={r.destination} mono />}
+                          </dl>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
