@@ -10,6 +10,7 @@ import ResponsesTab from './ResponsesTab'
 import JsonTab from './JsonTab'
 import DemoTab from './DemoTab'
 import LibraryTab from './LibraryTab'
+import FlowMapTab from './FlowMapTab'
 
 // The CMS. 3 panes: screen list / editor / live phone preview.
 export default function Builder() {
@@ -146,7 +147,7 @@ export default function Builder() {
           className="w-72 rounded-lg border border-transparent px-2 py-1 text-[13px] font-semibold text-slate-500 outline-none transition-colors hover:border-slate-200 focus:border-indigo-300 focus:text-slate-800"
         />
         <nav className="mx-auto flex gap-1 rounded-full bg-slate-100 p-1">
-          {[['build', '🛠️ Build'], ['library', '📚 Library'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['demo', '🎬 Demo']].map(([key, label]) => (
+          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['library', '📚 Library'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['demo', '🎬 Demo']].map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -192,6 +193,11 @@ export default function Builder() {
 
       {tab === 'responses' ? (
         <ResponsesTab />
+      ) : tab === 'flow' ? (
+        <FlowMapTab
+          quiz={quiz}
+          onOpen={(id) => { setSelectedId(id); setTab('build') }}
+        />
       ) : tab === 'library' ? (
         <LibraryTab onOpen={openQuiz} onChanged={() => syncFromStorage(false)} />
       ) : tab === 'json' ? (

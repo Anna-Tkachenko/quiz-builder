@@ -28,6 +28,7 @@ const STEPS = [
     title: 'Branching, skipping, personalization',
     who: 'Marketing manager',
     how: [
+      'Open the 🗺️ Flow tab — the whole journey as a diagram: arrows show where each answer leads, badges show conditional screens. Click any card to edit it.',
       'In the quiz, answer “Never” to the coding question → you get an extra reassurance screen. Any other answer skips it.',
       'Pick “Designing interfaces” or “Analyzing data” → the next message reacts to your specific choice.',
       'Every answer can be saved as a variable and reused in any later copy via {{name}} — type a name early and watch it.',
