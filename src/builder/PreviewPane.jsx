@@ -18,20 +18,37 @@ export default function PreviewPane({ quiz, selectedScreenId }) {
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto px-6 py-4">
       <div className="mb-3 flex w-full max-w-[340px] items-center gap-2">
-        <div className="flex flex-1 gap-1 rounded-full bg-slate-200/70 p-1">
-          {variantKeys.map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setAngle(k)}
-              className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
-                angle === k ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
+        {variantKeys.length <= 3 ? (
+          <div className="flex flex-1 gap-1 rounded-full bg-slate-200/70 p-1">
+            {variantKeys.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setAngle(k)}
+                className={`flex-1 truncate rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
+                  angle === k ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {k === 'default' ? 'default' : `?${quiz.variantParam}=${k}`}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <label className="flex flex-1 items-center gap-2 rounded-full bg-slate-200/70 py-1 pl-4 pr-2">
+            <span className="shrink-0 font-mono text-[11px] font-bold text-slate-400">
+              ?{quiz.variantParam}=
+            </span>
+            <select
+              value={angle}
+              onChange={(e) => setAngle(e.target.value)}
+              className="w-full flex-1 cursor-pointer rounded-full bg-white px-3 py-1 text-[12px] font-bold text-slate-700 shadow-sm outline-none"
             >
-              {k === 'default' ? 'default' : `?${quiz.variantParam}=${k}`}
-            </button>
-          ))}
-        </div>
+              {variantKeys.map((k) => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <button
           type="button"
           title="Restart preview"
