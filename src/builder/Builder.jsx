@@ -219,6 +219,7 @@ export default function Builder() {
                 key={selectedScreen.id}
                 screen={selectedScreen}
                 screens={quiz.screens}
+                variantParam={quiz.variantParam}
                 patch={(p) => patchScreen(selectedScreen.id, p)}
               />
             )}

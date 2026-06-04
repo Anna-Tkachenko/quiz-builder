@@ -9,9 +9,23 @@ const LAYOUTS = [
 ]
 
 // Middle pane: edit the selected screen. Field set depends on screen.type.
-export default function ScreenEditor({ screen, patch, screens = [] }) {
+export default function ScreenEditor({ screen, patch, screens = [], variantParam }) {
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
+
+  // Variables a condition can reference: every saved answer + the variant
+  // param + common UTMs. Power users can type anything in Advanced JSON.
+  const vars = [
+    ...new Set(
+      [
+        ...screens.map((s) => s.saveAs),
+        variantParam,
+        'utm_source',
+        'utm_content',
+        'utm_campaign',
+      ].filter(Boolean)
+    ),
+  ]
 
   return (
     <div className="p-5">
@@ -86,8 +100,163 @@ export default function ScreenEditor({ screen, patch, screens = [] }) {
         </Section>
       )}
 
-      <LogicEditor screen={screen} patch={patch} />
+      <VisibilityEditor screen={screen} patch={patch} vars={vars} screens={screens} />
+
+      {screen.type === 'message' && (
+        <ConditionalTextEditor screen={screen} patch={patch} vars={vars} screens={screens} />
+      )}
+
+      <details className="mt-2 mb-6 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3">
+        <summary className="cursor-pointer text-[12px] font-bold text-slate-400 select-none">
+          ⚙️ Advanced logic (JSON) — for developers
+        </summary>
+        <div className="pt-3">
+          <LogicEditor screen={screen} patch={patch} />
+        </div>
+      </details>
     </div>
+  )
+}
+
+const OPS = [
+  ['eq', 'is'],
+  ['neq', 'is not'],
+  ['contains', 'includes'],
+  ['exists', 'has any value'],
+]
+
+// One condition as a sentence: [answer ▾] [is ▾] [value].
+function ConditionEditor({ cond, onChange, vars, screens }) {
+  const c = cond || { var: vars[0] || '', op: 'eq', value: '' }
+  const set = (p) => onChange({ ...c, ...p })
+  // suggest the answer options of the screen that saves this variable
+  const sourceScreen = screens.find((s) => s.saveAs === c.var && s.options)
+  const listId = `cond-values-${c.var}`
+  const sel =
+    'rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-semibold text-slate-600 outline-none focus:border-indigo-400'
+
+  return (
+    <div className="flex items-center gap-2">
+      <select value={c.var} onChange={(e) => set({ var: e.target.value })} className={sel}>
+        {!vars.includes(c.var) && c.var && <option value={c.var}>{c.var}</option>}
+        {vars.map((v) => (
+          <option key={v} value={v}>{v}</option>
+        ))}
+      </select>
+      <select value={c.op} onChange={(e) => set({ op: e.target.value })} className={sel}>
+        {OPS.map(([op, label]) => (
+          <option key={op} value={op}>{label}</option>
+        ))}
+      </select>
+      {c.op !== 'exists' && (
+        <>
+          <input
+            type="text"
+            value={c.value ?? ''}
+            onChange={(e) => set({ value: e.target.value })}
+            placeholder="value"
+            list={sourceScreen ? listId : undefined}
+            className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-semibold outline-none focus:border-indigo-400"
+          />
+          {sourceScreen && (
+            <datalist id={listId}>
+              {sourceScreen.options.map((o, i) => (
+                <option key={i} value={o.value ?? o.label} />
+              ))}
+            </datalist>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// "Always show" vs "Only show when <condition>" — compiles to `show` (C3).
+function VisibilityEditor({ screen, patch, vars, screens }) {
+  const conditional = !!screen.show
+  return (
+    <Section title="Visibility">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => patch({ show: undefined })}
+          className={`flex-1 rounded-xl border-2 py-2 text-[12px] font-bold transition-colors ${
+            !conditional ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'
+          }`}
+        >
+          Always show
+        </button>
+        <button
+          type="button"
+          onClick={() => !conditional && patch({ show: { var: vars[0] || '', op: 'eq', value: '' } })}
+          className={`flex-1 rounded-xl border-2 py-2 text-[12px] font-bold transition-colors ${
+            conditional ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'
+          }`}
+        >
+          Only show when…
+        </button>
+      </div>
+      {conditional && (
+        <>
+          <ConditionEditor cond={screen.show} onChange={(c) => patch({ show: c })} vars={vars} screens={screens} />
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            Users who don’t match skip this screen automatically — combine with the Flow
+            dropdowns on a question to send only some answers here.
+          </p>
+        </>
+      )}
+    </Section>
+  )
+}
+
+// Per-condition text variants for message screens (C7). First match wins;
+// the default Text above shows otherwise.
+function ConditionalTextEditor({ screen, patch, vars, screens }) {
+  const list = screen.conditionalText || []
+  const update = (i, p) =>
+    patch({ conditionalText: list.map((r, j) => (j === i ? { ...r, ...p } : r)) })
+
+  return (
+    <Section title="Reactive text (responds to an earlier answer)">
+      {list.map((row, i) => (
+        <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">When</span>
+            <button
+              type="button"
+              onClick={() => patch({ conditionalText: list.filter((_, j) => j !== i) || undefined })}
+              className="text-slate-300 transition-colors hover:text-rose-500"
+            >
+              ✕
+            </button>
+          </div>
+          <ConditionEditor cond={row.when} onChange={(c) => update(i, { when: c })} vars={vars} screens={screens} />
+          <textarea
+            value={row.text ?? ''}
+            rows={2}
+            onChange={(e) => update(i, { text: e.target.value })}
+            placeholder="…show this text instead"
+            className="mt-2 w-full resize-y rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] font-medium outline-none focus:border-indigo-400"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() =>
+          patch({
+            conditionalText: [...list, { when: { var: vars[0] || '', op: 'eq', value: '' }, text: '' }],
+          })
+        }
+        className="rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
+      >
+        + Add reactive text
+      </button>
+      {list.length > 0 && (
+        <p className="text-[11px] leading-relaxed text-slate-400">
+          The first matching rule wins. If none match, the default Text above is shown.
+        </p>
+      )}
+    </Section>
   )
 }
 
@@ -311,7 +480,7 @@ function LogicEditor({ screen, patch }) {
   }
 
   return (
-    <Section title="Logic (branch / skip / conditional copy)">
+    <Section title="Raw rules (show / next / conditionalText)">
       <Field label='e.g. {"show": {"var":"experience","op":"eq","value":"Never"}}'>
         <textarea
           value={shown}
