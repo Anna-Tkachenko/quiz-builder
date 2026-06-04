@@ -56,11 +56,13 @@ const STEPS = [
   },
   {
     emoji: '{ }',
-    title: 'The quiz is one JSON document',
+    title: 'The quiz is one JSON document — and how it ships',
     who: 'For the “how does it scale” question',
     how: [
       'The JSON tab shows the whole quiz as a single document — the contract between this CMS and the renderer.',
-      'Copy it, share it, paste a modified one and hit Apply. New brand or product = new JSON, same renderer. That’s the ownership play vs. Typeform/Fillout.',
+      'Hand-off №1 — Publish: the live player serves only published snapshots. Edit anything → 🚀 Publish → refresh the live tab: new version. Drafts never leak to production.',
+      <>Hand-off №2 — fully headless: the renderer can fetch the document from <em>any URL</em>. <A href={liveUrl('?src=demo-quiz.json')}>This link</A> plays a <code>quiz.json</code> hosted as a plain static file — the CMS isn’t involved at all. Same idea works with S3, a CDN, or an API.</>,
+      'Copy / download / paste-and-apply the JSON. New brand or product = new JSON, same renderer. That’s the ownership play vs. Typeform/Fillout.',
     ],
   },
 ]

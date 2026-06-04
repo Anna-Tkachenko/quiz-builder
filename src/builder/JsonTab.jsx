@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { liveUrl } from '../lib/links'
 
-// The contract, visible: full quiz JSON — copy it, or paste/edit and apply.
-// This *is* the headless-CMS export/import.
+// The contract, visible: full quiz JSON — copy it, download it, or
+// paste/edit and apply. This *is* the headless-CMS export/import.
 export default function JsonTab({ quiz, setQuiz }) {
   const pretty = JSON.stringify(quiz, null, 2)
   const [draft, setDraft] = useState(null)
@@ -13,6 +14,15 @@ export default function JsonTab({ quiz, setQuiz }) {
     await navigator.clipboard.writeText(pretty)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
+  }
+
+  const download = () => {
+    const blob = new Blob([pretty], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${quiz.id || 'quiz'}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
   }
 
   const apply = () => {
@@ -60,7 +70,27 @@ export default function JsonTab({ quiz, setQuiz }) {
           >
             {copied ? '✓ Copied' : '⧉ Copy JSON'}
           </button>
+          <button
+            type="button"
+            onClick={download}
+            className="rounded-xl bg-white px-4 py-2 text-[12px] font-bold text-slate-600 shadow-sm transition-colors hover:text-slate-900"
+          >
+            ⬇ Download .json
+          </button>
         </div>
+      </div>
+
+      <div className="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 px-5 py-4 text-[13px] leading-relaxed text-slate-600">
+        <strong className="text-slate-800">How the renderer gets this document:</strong>
+        <span className="mx-1.5">①</span>
+        <strong>Publish</strong> snapshots it to the production store — the player at{' '}
+        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px]">{liveUrl(`?quiz=${quiz.id}`)}</code>{' '}
+        reads only published versions (in this spike the store is the browser; in production, a CDN/API).
+        <span className="mx-1.5">②</span>
+        Or go fully headless: host this file <em>anywhere</em> (S3, a gist, your repo) and point the
+        renderer straight at it —{' '}
+        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px]">{liveUrl('?src=https://your-host/quiz.json')}</code>.
+        The renderer never needs this CMS to run a quiz.
       </div>
 
       {error && (
