@@ -1,0 +1,136 @@
+{
+  "id": "kodree-data-career",
+  "title": "Kodree — Data Analytics career quiz",
+  "theme": {
+    "primaryColor": "#7852F4",
+    "font": "Inter",
+    "background": "#F8F7FD",
+    "stepper": true
+  },
+  "variantParam": "angle",
+  "destination": "https://kodree.com/en/data/get-started?session={{sessionId}}&goal={{goal}}",
+  "variants": {
+    "default": {
+      "copy": {
+        "heroBadge": "📊 Data Analytics",
+        "heroTitle": "Become a Data Analyst — no experience needed",
+        "heroSubtitle": "Take a 1-minute quiz and get a personal study plan for landing a data job.",
+        "heroCta": "Start the quiz"
+      },
+      "screens": ["hero", "goal", "name", "background", "encourage", "loader", "email", "result"]
+    },
+    "a_career": {
+      "copy": {
+        "heroBadge": "🔁 Career change",
+        "heroTitle": "Ready for a career you actually like?",
+        "heroSubtitle": "See how fast you could switch into Data Analytics — built around the skills you already have.",
+        "heroCta": "Check my fit"
+      },
+      "screens": ["hero", "why-switch", "goal", "name", "background", "encourage", "loader", "email", "result"]
+    }
+  },
+  "screens": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "badge": "{{variant.heroBadge}}",
+      "title": "{{variant.heroTitle}}",
+      "subtitle": "{{variant.heroSubtitle}}",
+      "cta": "{{variant.heroCta}}",
+      "emoji": "📈"
+    },
+    {
+      "id": "why-switch",
+      "type": "single-select",
+      "layout": "list",
+      "saveAs": "switchReason",
+      "title": "What's pushing you to switch?",
+      "options": [
+        { "label": "Salary ceiling", "icon": "💸" },
+        { "label": "No growth", "icon": "📉" },
+        { "label": "Burnout", "icon": "🔥" },
+        { "label": "Curiosity about data", "icon": "👀" }
+      ]
+    },
+    {
+      "id": "goal",
+      "type": "single-select",
+      "layout": "list",
+      "saveAs": "goal",
+      "title": "What's your end goal?",
+      "options": [
+        { "label": "Earn more", "icon": "💰" },
+        { "label": "Work from anywhere", "icon": "🌍" },
+        { "label": "Be my own boss", "icon": "🧑‍💼" },
+        { "label": "Work on exciting projects", "icon": "✨" },
+        { "label": "Change careers", "icon": "🔁" },
+        { "label": "Other", "icon": "💬" }
+      ]
+    },
+    {
+      "id": "name",
+      "type": "text",
+      "saveAs": "name",
+      "title": "What's your name?",
+      "subtitle": "We'll personalize your plan.",
+      "placeholder": "Your name",
+      "cta": "Continue"
+    },
+    {
+      "id": "background",
+      "type": "single-select",
+      "layout": "cards",
+      "saveAs": "background",
+      "title": "{{name|Hey}}, have you worked with data before?",
+      "options": [
+        { "label": "Never", "icon": "🌱" },
+        { "label": "In spreadsheets", "icon": "📑" },
+        { "label": "Quite a lot", "icon": "🚀" }
+      ],
+      "next": [
+        { "when": { "var": "background", "op": "eq", "value": "Never" }, "goto": "encourage" },
+        { "goto": "loader" }
+      ]
+    },
+    {
+      "id": "encourage",
+      "type": "message",
+      "show": { "var": "background", "op": "eq", "value": "Never" },
+      "emoji": "💜",
+      "title": "Perfect starting point, {{name|friend}}",
+      "text": "Most Kodree students start from zero — the plan begins with the absolute basics.",
+      "cta": "Good to know"
+    },
+    {
+      "id": "loader",
+      "type": "loader",
+      "delayMs": 3500,
+      "title": "Building your study plan…",
+      "steps": ["Reading your answers", "Matching the curriculum", "Checking job demand", "Finalizing your plan"]
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "saveAs": "email",
+      "title": "{{name|Friend}}, your plan is ready",
+      "subtitle": "Where should we send it?",
+      "placeholder": "you@example.com",
+      "privacy": "Only your study plan. No spam.",
+      "cta": "Get my plan"
+    },
+    {
+      "id": "result",
+      "type": "result",
+      "emoji": "🎉",
+      "title": "{{name|Friend}}, Data Analytics fits you",
+      "subtitle": "Here's your starting roadmap.",
+      "items": [
+        { "label": "Your goal", "value": "{{goal|—}}" },
+        { "label": "Background", "value": "{{background|—}}" },
+        { "label": "First milestone", "value": "Job-ready in ~8 months" }
+      ],
+      "cta": "Start learning →",
+      "redirect": true
+    }
+  ]
+}
