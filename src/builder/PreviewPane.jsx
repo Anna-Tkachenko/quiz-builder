@@ -18,7 +18,7 @@ export default function PreviewPane({ quiz, selectedScreenId }) {
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto px-6 py-4">
       <div className="mb-3 flex w-full max-w-[340px] items-center gap-2">
-        {variantKeys.length <= 3 ? (
+        {variantKeys.length <= 2 ? (
           <div className="flex flex-1 gap-1 rounded-full bg-slate-200/70 p-1">
             {variantKeys.map((k) => (
               <button
