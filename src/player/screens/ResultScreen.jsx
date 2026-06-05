@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
-import { PrimaryButton, Visual } from '../ui'
+import { PrimaryButton } from '../ui'
+import BlockStack from '../BlockStack'
 
 export default function ResultScreen({ screen, t, onComplete }) {
   const fired = useRef(false)
@@ -12,23 +13,17 @@ export default function ResultScreen({ screen, t, onComplete }) {
 
   return (
     <div className="flex flex-1 flex-col justify-between px-6 pb-8 pt-10 text-center">
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <Visual
-          value={screen.emoji}
-          textClassName="animate-pop-in mb-4 block text-6xl"
-          imgClassName="animate-pop-in mb-4 max-h-36 w-auto max-w-[240px] rounded-2xl object-cover shadow-md"
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <BlockStack
+          screen={screen}
+          t={t}
+          centered
+          titleClass="text-[26px] font-extrabold leading-tight tracking-tight text-slate-900"
+          subtitleClass="max-w-[300px] text-[15px] leading-relaxed text-slate-500"
         />
-        <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-slate-900">
-          {t(screen.title)}
-        </h1>
-        {screen.subtitle && (
-          <p className="mt-3 max-w-[300px] text-[15px] leading-relaxed text-slate-500">
-            {t(screen.subtitle)}
-          </p>
-        )}
 
         {screen.items?.length > 0 && (
-          <div className="mt-7 w-full max-w-[320px] overflow-hidden rounded-2xl bg-white text-left shadow-sm">
+          <div className="mt-4 w-full max-w-[320px] overflow-hidden rounded-2xl bg-white text-left shadow-sm">
             {screen.items.map((item, i) => (
               <div
                 key={i}

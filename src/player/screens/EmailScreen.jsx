@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { PrimaryButton, ScreenTitle, ScreenSubtitle } from '../ui'
+import { PrimaryButton } from '../ui'
+import BlockStack from '../BlockStack'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -10,8 +11,14 @@ export default function EmailScreen({ screen, t, onAnswer }) {
 
   return (
     <div className="flex flex-1 flex-col px-6 pb-8 pt-6">
-      <ScreenTitle>{t(screen.title)}</ScreenTitle>
-      <ScreenSubtitle>{t(screen.subtitle)}</ScreenSubtitle>
+      <div className="flex flex-col gap-3">
+        <BlockStack
+          screen={screen}
+          t={t}
+          titleClass="text-[26px] font-extrabold leading-tight tracking-tight text-slate-900"
+          subtitleClass="text-[15px] leading-relaxed text-slate-500"
+        />
+      </div>
 
       <div className="mt-7 flex-1">
         <input

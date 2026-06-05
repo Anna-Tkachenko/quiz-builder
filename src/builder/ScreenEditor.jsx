@@ -51,6 +51,8 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         {has('cta') && <TextField label="Button label" value={screen.cta} onChange={(v) => patch({ cta: v })} />}
       </Section>
 
+      {has('blocks') && <BlocksEditor screen={screen} patch={patch} />}
+
       {has('layout') && (
         <Section title="Layout">
           <div className="flex gap-2">
@@ -119,6 +121,90 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         </div>
       </details>
     </div>
+  )
+}
+
+// Screen layout: drag (or ▲▼) the content blocks into the order they should
+// render; the visual block gets size + position controls.
+function BlocksEditor({ screen, patch }) {
+  const supported = BLOCK_MAP[screen.type] || []
+  const declared = (screen.blockOrder || []).filter((k) => supported.includes(k))
+  const order = [...declared, ...supported.filter((k) => !declared.includes(k))]
+  const [dragIdx, setDragIdx] = useState(null)
+  const [overIdx, setOverIdx] = useState(null)
+
+  const move = (from, to) => {
+    if (to < 0 || to >= order.length || from === to) return
+    const next = [...order]
+    const [x] = next.splice(from, 1)
+    next.splice(to, 0, x)
+    patch({ blockOrder: next })
+  }
+
+  if (supported.length < 2) return null
+
+  const size = screen.visualSize || 'md'
+  const align = screen.visualAlign || ''
+  const pill = (active) =>
+    `flex-1 rounded-lg border py-1 text-[11px] font-bold transition-colors ${
+      active ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+    }`
+
+  return (
+    <Section title="Screen layout (drag blocks to reorder)">
+      {order.map((key, i) => {
+        const meta = BLOCK_META[key]
+        const filled = !!screen[meta.field]
+        return (
+          <div
+            key={key}
+            draggable
+            onDragStart={() => setDragIdx(i)}
+            onDragOver={(e) => { e.preventDefault(); setOverIdx(i) }}
+            onDragLeave={() => setOverIdx((o) => (o === i ? null : o))}
+            onDrop={() => { if (dragIdx !== null) move(dragIdx, i); setDragIdx(null); setOverIdx(null) }}
+            onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
+            className={`rounded-xl border bg-white transition-shadow ${
+              overIdx === i && dragIdx !== i ? 'border-indigo-300 ring-2 ring-indigo-200' : 'border-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 px-3 py-2">
+              <span className="cursor-grab text-slate-300" title="Drag to reorder">⠿</span>
+              <span className="w-5 text-center">{meta.icon}</span>
+              <span className={`flex-1 text-[12.5px] font-bold ${filled ? 'text-slate-700' : 'text-slate-300'}`}>
+                {meta.label}
+                {!filled && <span className="ml-1.5 font-medium">(empty — fill it in Content above)</span>}
+              </span>
+              <button type="button" disabled={i === 0} onClick={() => move(i, i - 1)}
+                className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▲</button>
+              <button type="button" disabled={i === order.length - 1} onClick={() => move(i, i + 1)}
+                className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▼</button>
+            </div>
+            {key === 'visual' && filled && (
+              <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Size</span>
+                <div className="flex flex-1 gap-1">
+                  {[['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['full', 'Full']].map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => patch({ visualSize: v })} className={pill(size === v)}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Position</span>
+                <div className="flex flex-1 gap-1">
+                  {[['left', '⬅'], ['center', '⏺'], ['right', '➡']].map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => patch({ visualAlign: v })}
+                      className={pill(align === v)} title={v}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </Section>
   )
 }
 
@@ -280,14 +366,32 @@ function ConditionalTextEditor({ screen, patch, vars, screens }) {
 }
 
 const FIELD_MAP = {
-  hero: ['badge', 'emoji', 'subtitle', 'cta'],
-  'single-select': ['subtitle', 'layout', 'options', 'saveAs'],
-  'multi-select': ['subtitle', 'hint', 'layout', 'options', 'saveAs', 'cta'],
-  message: ['emoji', 'text', 'cta'],
+  hero: ['badge', 'emoji', 'subtitle', 'cta', 'blocks'],
+  'single-select': ['emoji', 'subtitle', 'layout', 'options', 'saveAs', 'blocks'],
+  'multi-select': ['emoji', 'subtitle', 'hint', 'layout', 'options', 'saveAs', 'cta', 'blocks'],
+  message: ['emoji', 'text', 'cta', 'blocks'],
   loader: ['steps'],
-  text: ['subtitle', 'placeholder', 'saveAs', 'cta'],
-  email: ['subtitle', 'placeholder', 'privacy', 'saveAs', 'cta'],
-  result: ['emoji', 'subtitle', 'items', 'cta'],
+  text: ['emoji', 'subtitle', 'placeholder', 'saveAs', 'cta', 'blocks'],
+  email: ['emoji', 'subtitle', 'placeholder', 'privacy', 'saveAs', 'cta', 'blocks'],
+  result: ['emoji', 'subtitle', 'items', 'cta', 'blocks'],
+}
+
+// Which content blocks a screen type composes, in default order.
+const BLOCK_MAP = {
+  hero: ['visual', 'title', 'subtitle'],
+  'single-select': ['visual', 'title', 'subtitle'],
+  'multi-select': ['visual', 'title', 'subtitle'],
+  message: ['visual', 'title', 'text'],
+  text: ['visual', 'title', 'subtitle'],
+  email: ['visual', 'title', 'subtitle'],
+  result: ['visual', 'title', 'subtitle'],
+}
+
+const BLOCK_META = {
+  visual: { icon: '🖼', label: 'Visual (emoji / image)', field: 'emoji' },
+  title: { icon: '𝐓', label: 'Title', field: 'title' },
+  subtitle: { icon: '≡', label: 'Subtitle', field: 'subtitle' },
+  text: { icon: '¶', label: 'Text', field: 'text' },
 }
 
 function OptionsEditor({ screen, patch }) {
