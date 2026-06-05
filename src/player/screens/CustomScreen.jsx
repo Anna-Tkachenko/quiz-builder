@@ -59,9 +59,25 @@ export default function CustomScreen({ screen, t, onAnswerMap, onNext }) {
     setVal(b.id, cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v])
   }
 
-  return (
-    <div className="flex flex-1 flex-col gap-4 px-6 pb-8 pt-6">
-      {blocks.map((b) => {
+  // Pack consecutive non-full-width elements into shared rows
+  // (width: 'full' default | 'half' | 'third').
+  const span = (b) => (b.width === 'half' ? 1 / 2 : b.width === 'third' ? 1 / 3 : 1)
+  const rows = []
+  for (const b of blocks) {
+    const last = rows[rows.length - 1]
+    if (
+      span(b) < 1 &&
+      last &&
+      last.packed &&
+      last.items.reduce((s, x) => s + span(x), 0) + span(b) <= 1.001
+    ) {
+      last.items.push(b)
+    } else {
+      rows.push({ packed: span(b) < 1, items: [b] })
+    }
+  }
+
+  const renderBlock = (b) => {
         switch (b.type) {
           case 'badge':
             return b.text ? (
@@ -146,7 +162,26 @@ export default function CustomScreen({ screen, t, onAnswerMap, onNext }) {
           default:
             return null
         }
-      })}
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 px-6 pb-8 pt-6">
+      {rows.map((row, i) =>
+        row.packed ? (
+          <div
+            key={i}
+            className={`flex items-stretch gap-3 ${row.items.some((b) => b.type === 'button') ? 'mt-auto pt-2' : ''}`}
+          >
+            {row.items.map((b) => (
+              <div key={b.id} className="flex min-w-0 flex-1 flex-col justify-center">
+                {renderBlock(b)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          renderBlock(row.items[0])
+        )
+      )}
       {!hasButton && interactive.length === 0 && (
         <div className="mt-auto pt-2">
           <PrimaryButton onClick={() => onNext()}>Continue</PrimaryButton>

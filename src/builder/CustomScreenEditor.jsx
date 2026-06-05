@@ -119,7 +119,20 @@ export default function CustomScreenEditor({ screen, patch, library, onLibraryCh
               </div>
             )}
 
-            <div className="border-t border-slate-100 px-3 py-2">
+            <div className="flex flex-col gap-2 border-t border-slate-100 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Width</span>
+                <div className="flex flex-1 gap-1">
+                  {[['full', '─ Full'], ['half', '◧ ½'], ['third', '⫿ ⅓']].map(([v, l]) => (
+                    <button key={v} type="button"
+                      onClick={() => patchBlock(b.id, { width: v === 'full' ? undefined : v })}
+                      title={v === 'full' ? 'Own row' : 'Packs into a row with the neighbouring narrow elements'}
+                      className={pill((b.width || 'full') === v)}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <ElementFields block={b} patchBlock={(p) => patchBlock(b.id, p)} />
             </div>
           </div>
