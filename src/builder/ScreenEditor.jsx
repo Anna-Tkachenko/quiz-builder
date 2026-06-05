@@ -9,6 +9,7 @@ const LAYOUTS = [
 ]
 
 import { interpolate } from '../quiz/engine'
+import { isImageValue, readImageFile } from '../lib/visual'
 
 // Middle pane: edit the selected screen. Field set depends on screen.type.
 export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy }) {
@@ -125,13 +126,46 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
 }
 
 // Screen layout: drag (or ▲▼) the content blocks into the order they should
-// render; the visual block gets size + position controls.
+// render. The visual/image blocks get size + position controls, and any
+// screen can take extra text/image blocks via "+ Add block".
+function SizeAlignControls({ size, align, onSize, onAlign }) {
+  const pill = (active) =>
+    `flex-1 rounded-lg border py-1 text-[11px] font-bold transition-colors ${
+      active ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+    }`
+  return (
+    <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2">
+      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Size</span>
+      <div className="flex flex-1 gap-1">
+        {[['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['full', 'Full']].map(([v, l]) => (
+          <button key={v} type="button" onClick={() => onSize(v)} className={pill(size === v)}>{l}</button>
+        ))}
+      </div>
+      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Position</span>
+      <div className="flex flex-1 gap-1">
+        {[['left', '⬅'], ['center', '⏺'], ['right', '➡']].map(([v, l]) => (
+          <button key={v} type="button" onClick={() => onAlign(v)} className={pill(align === v)} title={v}>{l}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function BlocksEditor({ screen, patch }) {
   const supported = BLOCK_MAP[screen.type] || []
-  const declared = (screen.blockOrder || []).filter((k) => supported.includes(k))
-  const order = [...declared, ...supported.filter((k) => !declared.includes(k))]
+  const extras = screen.extraBlocks || []
+  const extraKeys = extras.map((b) => `x:${b.id}`)
+  const declared = (screen.blockOrder || []).filter(
+    (k) => supported.includes(k) || extraKeys.includes(k)
+  )
+  const order = [
+    ...declared,
+    ...supported.filter((k) => !declared.includes(k)),
+    ...extraKeys.filter((k) => !declared.includes(k)),
+  ]
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
+  const fileFor = useState({})[0] // id -> input element
 
   const move = (from, to) => {
     if (to < 0 || to >= order.length || from === to) return
@@ -141,20 +175,39 @@ function BlocksEditor({ screen, patch }) {
     patch({ blockOrder: next })
   }
 
+  const patchExtra = (id, p) =>
+    patch({ extraBlocks: extras.map((b) => (b.id === id ? { ...b, ...p } : b)) })
+
+  const addExtra = (type) => {
+    let n = 1
+    while (extras.some((b) => b.id === `b${n}`)) n++
+    const id = `b${n}`
+    patch({
+      extraBlocks: [...extras, { id, type, value: '' }],
+      blockOrder: [...order, `x:${id}`],
+    })
+  }
+
+  const deleteExtra = (id) =>
+    patch({
+      extraBlocks: extras.filter((b) => b.id !== id),
+      blockOrder: order.filter((k) => k !== `x:${id}`),
+    })
+
   if (supported.length < 2) return null
 
-  const size = screen.visualSize || 'md'
-  const align = screen.visualAlign || ''
-  const pill = (active) =>
-    `flex-1 rounded-lg border py-1 text-[11px] font-bold transition-colors ${
-      active ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-    }`
+  const inputCls =
+    'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium outline-none focus:border-indigo-400'
 
   return (
     <Section title="Screen layout (drag blocks to reorder)">
       {order.map((key, i) => {
-        const meta = BLOCK_META[key]
-        const filled = !!screen[meta.field]
+        const extra = key.startsWith('x:') ? extras.find((b) => `x:${b.id}` === key) : null
+        if (key.startsWith('x:') && !extra) return null
+        const meta = extra
+          ? { icon: extra.type === 'image' ? '🖼' : '¶', label: extra.type === 'image' ? 'Image block' : 'Text block' }
+          : BLOCK_META[key]
+        const filled = extra ? !!extra.value : !!screen[meta.field]
         return (
           <div
             key={key}
@@ -173,37 +226,94 @@ function BlocksEditor({ screen, patch }) {
               <span className="w-5 text-center">{meta.icon}</span>
               <span className={`flex-1 text-[12.5px] font-bold ${filled ? 'text-slate-700' : 'text-slate-300'}`}>
                 {meta.label}
-                {!filled && <span className="ml-1.5 font-medium">(empty — fill it in Content above)</span>}
+                {!filled && !extra && <span className="ml-1.5 font-medium">(empty — fill it in Content above)</span>}
               </span>
               <button type="button" disabled={i === 0} onClick={() => move(i, i - 1)}
                 className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▲</button>
               <button type="button" disabled={i === order.length - 1} onClick={() => move(i, i + 1)}
                 className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▼</button>
+              {extra && (
+                <button type="button" title="Delete block" onClick={() => deleteExtra(extra.id)}
+                  className="px-1 text-slate-300 transition-colors hover:text-rose-500">✕</button>
+              )}
             </div>
-            {key === 'visual' && filled && (
-              <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Size</span>
-                <div className="flex flex-1 gap-1">
-                  {[['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['full', 'Full']].map(([v, l]) => (
-                    <button key={v} type="button" onClick={() => patch({ visualSize: v })} className={pill(size === v)}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Position</span>
-                <div className="flex flex-1 gap-1">
-                  {[['left', '⬅'], ['center', '⏺'], ['right', '➡']].map(([v, l]) => (
-                    <button key={v} type="button" onClick={() => patch({ visualAlign: v })}
-                      className={pill(align === v)} title={v}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
+
+            {/* inline value editor for extra blocks */}
+            {extra && extra.type === 'text' && (
+              <div className="border-t border-slate-100 px-3 py-2">
+                <textarea
+                  value={extra.value}
+                  rows={2}
+                  onChange={(e) => patchExtra(extra.id, { value: e.target.value })}
+                  placeholder="Extra text… ({{variables}} work here too)"
+                  className={inputCls + ' resize-y'}
+                />
               </div>
+            )}
+            {extra && extra.type === 'image' && (
+              <div className="flex items-center gap-2 border-t border-slate-100 px-3 py-2">
+                {isImageValue(extra.value) && (
+                  <img src={extra.value} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 object-cover" />
+                )}
+                <input
+                  type="text"
+                  value={extra.value}
+                  onChange={(e) => patchExtra(extra.id, { value: e.target.value })}
+                  placeholder="Image URL or emoji"
+                  className={inputCls}
+                />
+                <label className="shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600">
+                  🖼 File…
+                  <input
+                    ref={(el) => { fileFor[extra.id] = el }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      readImageFile(e.target.files?.[0], (dataUri) => patchExtra(extra.id, { value: dataUri }))
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+
+            {key === 'visual' && filled && (
+              <SizeAlignControls
+                size={screen.visualSize || 'md'}
+                align={screen.visualAlign || ''}
+                onSize={(v) => patch({ visualSize: v })}
+                onAlign={(v) => patch({ visualAlign: v })}
+              />
+            )}
+            {extra && extra.type === 'image' && filled && (
+              <SizeAlignControls
+                size={extra.size || 'md'}
+                align={extra.align || ''}
+                onSize={(v) => patchExtra(extra.id, { size: v })}
+                onAlign={(v) => patchExtra(extra.id, { align: v })}
+              />
             )}
           </div>
         )
       })}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => addExtra('text')}
+          className="flex-1 rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
+        >
+          + Add text block
+        </button>
+        <button
+          type="button"
+          onClick={() => addExtra('image')}
+          className="flex-1 rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
+        >
+          + Add image block
+        </button>
+      </div>
     </Section>
   )
 }

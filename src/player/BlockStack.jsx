@@ -24,12 +24,43 @@ export default function BlockStack({
   titleClass,
   subtitleClass,
 }) {
-  const declared = (screen.blockOrder || []).filter((k) => SUPPORTED.includes(k))
-  const order = [...declared, ...SUPPORTED.filter((k) => !declared.includes(k))]
+  // extra author-added blocks live in screen.extraBlocks, keyed x:<id>
+  const extras = screen.extraBlocks || []
+  const extraKeys = extras.map((b) => `x:${b.id}`)
+  const declared = (screen.blockOrder || []).filter(
+    (k) => SUPPORTED.includes(k) || extraKeys.includes(k)
+  )
+  const order = [
+    ...declared,
+    ...SUPPORTED.filter((k) => !declared.includes(k)),
+    ...extraKeys.filter((k) => !declared.includes(k)),
+  ]
   const size = screen.visualSize || 'md'
   const align = screen.visualAlign || (centered ? 'center' : 'left')
 
   return order.map((key) => {
+    if (key.startsWith('x:')) {
+      const blk = extras.find((b) => `x:${b.id}` === key)
+      if (!blk || !blk.value) return null
+      if (blk.type === 'image') {
+        const bSize = blk.size || 'md'
+        const bAlign = blk.align || (centered ? 'center' : 'left')
+        return (
+          <div key={key} className={`flex w-full ${JUSTIFY[bAlign] || JUSTIFY.left}`}>
+            <Visual
+              value={blk.value}
+              textClassName={`animate-pop-in block ${EMOJI_SIZE[bSize]}`}
+              imgClassName={`animate-pop-in ${IMG_SIZE[bSize]} ${bSize === 'full' ? 'w-full object-cover' : 'w-auto object-cover'} rounded-2xl shadow-md`}
+            />
+          </div>
+        )
+      }
+      return (
+        <p key={key} className={subtitleClass}>
+          {t(blk.value)}
+        </p>
+      )
+    }
     if (key === 'visual' && screen.emoji) {
       return (
         <div key={key} className={`flex w-full ${JUSTIFY[align] || JUSTIFY.left}`}>
