@@ -124,7 +124,7 @@ ck('9d. Reorder persists to quiz JSON', idxAfter === idxBefore + 1, `${idxBefore
 ck('9e. Layout persisted as grid', stored2.screens.find((s) => s.id === 'interests').layout === 'grid')
 
 // reset demo for a clean state after the test run
-await desktop.getByRole('button', { name: 'Reset demo' }).click()
+await desktop.getByRole('button', { name: '↺ Reset' }).click()
 await desktop.waitForTimeout(300)
 
 ck('Zero console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '))

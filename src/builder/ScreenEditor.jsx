@@ -491,21 +491,20 @@ function FlowEditor({ screen, screens, patch, variantCopy }) {
     else if (!r.when && r.goto) defaultGoto = r.goto
   }
 
-  const compile = (po, dg) => {
+  // What an answer actually does right now: its explicit rule, or the
+  // legacy fallback rule, or "next in order".
+  const effective = (v) => perAnswer[v] ?? defaultGoto ?? ''
+
+  // One dropdown per answer is the whole truth — changing any answer
+  // materializes the rules (no hidden "otherwise" fallback).
+  const setAnswerGoto = (value, goto) => {
     const out = []
     for (const o of options) {
       const v = o.value ?? o.label
-      if (po[v]) out.push({ when: { var: saveAs, op, value: v }, goto: po[v] })
+      const target = v === value ? goto : effective(v)
+      if (target) out.push({ when: { var: saveAs, op, value: v }, goto: target })
     }
-    if (dg) out.push({ goto: dg })
     patch({ next: out.length ? out : undefined })
-  }
-
-  const setAnswerGoto = (value, goto) => {
-    const po = { ...perAnswer }
-    if (goto) po[value] = goto
-    else delete po[value]
-    compile(po, defaultGoto)
   }
 
   if (!saveAs) {
@@ -533,7 +532,7 @@ function FlowEditor({ screen, screens, patch, variantCopy }) {
             </span>
             <span className="text-slate-300">→</span>
             <select
-              value={perAnswer[v] ?? ''}
+              value={effective(v)}
               onChange={(e) => setAnswerGoto(v, e.target.value)}
               className={sel + ' flex-1'}
             >
@@ -545,21 +544,8 @@ function FlowEditor({ screen, screens, patch, variantCopy }) {
           </div>
         )
       })}
-      <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
-        <span className="w-1/2 text-[13px] font-semibold text-slate-400">Otherwise</span>
-        <span className="text-slate-300">→</span>
-        <select
-          value={defaultGoto}
-          onChange={(e) => compile(perAnswer, e.target.value)}
-          className={sel + ' flex-1'}
-        >
-          <option value="">Next in order</option>
-          {targets.map((s) => (
-            <option key={s.id} value={s.id}>{targetLabel(s)}</option>
-          ))}
-        </select>
-      </div>
       <p className="text-[11px] leading-relaxed text-slate-400">
+        {op === 'contains' && <>Multiple selections: the first answer in this list with a rule wins.<br /></>}
         💡 Tip: a target screen with a <code>show</code> condition is auto-skipped for users who
         don’t match it — that’s how “extra screens for some answers” work.
       </p>

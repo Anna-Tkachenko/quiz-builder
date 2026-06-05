@@ -151,61 +151,68 @@ export default function Builder() {
 
   return (
     <div className="flex h-dvh flex-col bg-slate-100 text-slate-800">
-      {/* Top bar */}
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
-        <div className="flex items-center gap-2">
+      {/* Top bar — single row, nothing wraps */}
+      <header className="flex h-14 shrink-0 items-center gap-3 whitespace-nowrap border-b border-slate-200 bg-white px-4">
+        <div className="flex shrink-0 items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-[15px] text-white">⚡</span>
-          <span className="text-[15px] font-extrabold tracking-tight">Quiz Builder</span>
+          <span className="hidden text-[15px] font-extrabold tracking-tight min-[1500px]:block">Quiz Builder</span>
         </div>
         <input
           type="text"
           value={quiz.title ?? ''}
           onChange={(e) => setQuiz((q) => ({ ...q, title: e.target.value }))}
-          className="w-72 rounded-lg border border-transparent px-2 py-1 text-[13px] font-semibold text-slate-500 outline-none transition-colors hover:border-slate-200 focus:border-indigo-300 focus:text-slate-800"
+          title="Quiz title"
+          className="hidden w-44 min-w-0 truncate rounded-lg border border-transparent px-2 py-1 text-[13px] font-semibold text-slate-500 outline-none transition-colors hover:border-slate-200 focus:border-indigo-300 focus:text-slate-800 min-[1450px]:block min-[1650px]:w-64"
         />
-        <nav className="mx-auto flex gap-1 rounded-full bg-slate-100 p-1">
-          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['components', '🧰 Builder library'], ['library', '📚 Quizzes'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['howto', '📖 How to']].map(([key, label]) => (
+        <nav className="mx-auto flex shrink-0 gap-0.5 rounded-full bg-slate-100 p-1">
+          {[['build', '🛠️', 'Build'], ['flow', '🗺️', 'Flow'], ['components', '🧰', 'Library'], ['library', '📚', 'Quizzes'], ['json', '{ }', 'JSON'], ['responses', '📊', 'Responses'], ['howto', '📖', 'Help']].map(([key, icon, label]) => (
             <button
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-bold transition-all ${
+              title={label}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold transition-all ${
                 tab === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {label}
+              <span>{icon}</span>
+              <span className="hidden min-[1180px]:inline">{label}</span>
             </button>
           ))}
         </nav>
-        {pub.status === 'live' ? (
-          <span className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-[13px] font-bold text-emerald-600">
-            ● Live · v{pub.version}
-          </span>
-        ) : (
+        <div className="flex shrink-0 items-center gap-2">
+          {pub.status === 'live' ? (
+            <span className="flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-1.5 text-[12.5px] font-bold text-emerald-600">
+              ● Live v{pub.version}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={publish}
+              title={pub.status === 'dirty' ? `Your draft has unpublished edits — publish them as v${pub.version + 1}` : 'Publish this quiz'}
+              className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-[12.5px] font-bold text-white shadow-sm transition-all hover:brightness-110"
+            >
+              🚀 Publish{pub.status === 'dirty' ? ` v${pub.version + 1}` : ''}
+            </button>
+          )}
+          <a
+            href={liveUrl(`?quiz=${quiz.id}`)}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl px-2.5 py-1.5 text-[12.5px] font-bold text-slate-500 transition-colors hover:text-slate-900"
+            title={pub.status === 'dirty' ? 'Opens the published production version — your draft edits are not live yet' : 'Open the live quiz'}
+          >
+            Live ↗
+          </a>
           <button
             type="button"
-            onClick={publish}
-            className="rounded-xl bg-emerald-600 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-all hover:brightness-110"
+            onClick={reset}
+            title="Restore the original demo quiz"
+            className="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[12.5px] font-bold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
           >
-            🚀 {pub.status === 'dirty' ? `Publish changes (v${pub.version + 1})` : 'Publish'}
+            ↺ Reset
           </button>
-        )}
-        <a
-          href={liveUrl(`?quiz=${quiz.id}`)}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-xl px-3 py-2 text-[13px] font-bold text-slate-500 transition-colors hover:text-slate-900"
-          title={pub.status === 'dirty' ? 'Opens the published production version — your draft edits are not live yet' : 'Open the live quiz'}
-        >
-          View live ↗
-        </a>
-        <button
-          type="button"
-          onClick={reset}
-          className="rounded-xl bg-slate-100 px-3 py-2 text-[13px] font-bold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
-        >
-          Reset demo
-        </button>
+        </div>
       </header>
 
       {tab === 'responses' ? (
