@@ -48,21 +48,45 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         {['hero', 'single-select', 'multi-select', 'message', 'text', 'email'].includes(screen.type) && (
           <button
             type="button"
-            title="Turn this screen into freely composable elements (adds the elements of this type, then add any others)"
-            onClick={() =>
+            title="Turn this screen into freely composable elements (the simple view stays one click away)"
+            onClick={() => {
+              // stash the original so "Back to simple view" can restore it
+              const tpl = structuredClone(screen)
+              delete tpl.id
+              delete tpl._template
               patch({
                 type: 'custom',
                 blocks: screenToElements(screen),
+                _template: tpl,
                 badge: undefined, emoji: undefined, title: undefined, subtitle: undefined,
                 text: undefined, hint: undefined, placeholder: undefined, privacy: undefined,
                 cta: undefined, options: undefined, layout: undefined, saveAs: undefined,
                 items: undefined, blockOrder: undefined, extraBlocks: undefined,
                 visualSize: undefined, visualAlign: undefined, conditionalText: undefined,
               })
-            }
+            }}
             className="rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
           >
             🧩 Customize elements
+          </button>
+        )}
+        {screen.type === 'custom' && screen._template && (
+          <button
+            type="button"
+            title={`Restore the original ${TYPE_META[screen._template.type]?.label ?? ''} screen exactly as it was before customizing — element changes on this screen are discarded`}
+            onClick={() =>
+              patch({
+                blocks: undefined,
+                _template: undefined,
+                show: undefined,
+                next: undefined,
+                conditionalText: undefined,
+                ...screen._template,
+              })
+            }
+            className="rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-700"
+          >
+            ↩ Back to simple view
           </button>
         )}
         <button
