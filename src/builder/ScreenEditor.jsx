@@ -10,21 +10,27 @@ const LAYOUTS = [
 
 import { interpolate } from '../quiz/engine'
 import { isImageValue, readImageFile } from '../lib/visual'
+import CustomScreenEditor from './CustomScreenEditor'
+import { screenTitleOf } from './meta'
 
 // Middle pane: edit the selected screen. Field set depends on screen.type.
-export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy }) {
+export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy, library = [], onLibraryChange }) {
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
 
   // Variables a condition can reference, grouped for humans:
   // answers (shown with their question title) + link params.
+  // Custom screens keep their saveAs inside element blocks.
   const seen = new Set()
-  const answerVars = screens
-    .filter((s) => s.saveAs && s.id !== screen.id && !seen.has(s.saveAs) && seen.add(s.saveAs))
-    .map((s) => ({
-      key: s.saveAs,
-      label: String(s.title || s.id).replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 48),
-    }))
+  const answerVars = []
+  for (const s of screens) {
+    if (s.id === screen.id) continue
+    const label = (screenTitleOf(s) || s.id).replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 48)
+    if (s.saveAs && !seen.has(s.saveAs) && seen.add(s.saveAs)) answerVars.push({ key: s.saveAs, label })
+    for (const b of s.blocks || []) {
+      if (b.saveAs && !seen.has(b.saveAs) && seen.add(b.saveAs)) answerVars.push({ key: b.saveAs, label })
+    }
+  }
   const paramVars = [
     ...new Set([variantParam, 'utm_source', 'utm_content', 'utm_campaign'].filter(Boolean)),
   ].filter((k) => !seen.has(k))
@@ -40,17 +46,28 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         </div>
       </div>
 
-      <Section title="Content">
-        {has('badge') && <TextField label="Badge" value={screen.badge} onChange={(v) => patch({ badge: v })} />}
-        {has('emoji') && <VisualField label="Visual (emoji, image URL, or pick a file)" value={screen.emoji} onChange={(v) => patch({ emoji: v })} />}
-        <AreaField label="Title  (supports {{variables}})" rows={2} value={screen.title} onChange={(v) => patch({ title: v })} />
-        {has('subtitle') && <AreaField label="Subtitle" rows={2} value={screen.subtitle} onChange={(v) => patch({ subtitle: v })} />}
-        {has('text') && <AreaField label="Text" rows={3} value={screen.text} onChange={(v) => patch({ text: v })} />}
-        {has('hint') && <TextField label="Hint" value={screen.hint} onChange={(v) => patch({ hint: v })} />}
-        {has('placeholder') && <TextField label="Placeholder" value={screen.placeholder} onChange={(v) => patch({ placeholder: v })} />}
-        {has('privacy') && <AreaField label="Privacy line" rows={2} value={screen.privacy} onChange={(v) => patch({ privacy: v })} />}
-        {has('cta') && <TextField label="Button label" value={screen.cta} onChange={(v) => patch({ cta: v })} />}
-      </Section>
+      {screen.type !== 'custom' && (
+        <Section title="Content">
+          {has('badge') && <TextField label="Badge" value={screen.badge} onChange={(v) => patch({ badge: v })} />}
+          {has('emoji') && <VisualField label="Visual (emoji, image URL, or pick a file)" value={screen.emoji} onChange={(v) => patch({ emoji: v })} />}
+          <AreaField label="Title  (supports {{variables}})" rows={2} value={screen.title} onChange={(v) => patch({ title: v })} />
+          {has('subtitle') && <AreaField label="Subtitle" rows={2} value={screen.subtitle} onChange={(v) => patch({ subtitle: v })} />}
+          {has('text') && <AreaField label="Text" rows={3} value={screen.text} onChange={(v) => patch({ text: v })} />}
+          {has('hint') && <TextField label="Hint" value={screen.hint} onChange={(v) => patch({ hint: v })} />}
+          {has('placeholder') && <TextField label="Placeholder" value={screen.placeholder} onChange={(v) => patch({ placeholder: v })} />}
+          {has('privacy') && <AreaField label="Privacy line" rows={2} value={screen.privacy} onChange={(v) => patch({ privacy: v })} />}
+          {has('cta') && <TextField label="Button label" value={screen.cta} onChange={(v) => patch({ cta: v })} />}
+        </Section>
+      )}
+
+      {screen.type === 'custom' && (
+        <CustomScreenEditor
+          screen={screen}
+          patch={patch}
+          library={library}
+          onLibraryChange={onLibraryChange}
+        />
+      )}
 
       {has('blocks') && <BlocksEditor screen={screen} patch={patch} />}
 
@@ -81,6 +98,20 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
       {has('options') && (
         <FlowEditor screen={screen} screens={screens} patch={patch} variantCopy={variantCopy} />
       )}
+
+      {/* custom screens branch on their first choice element */}
+      {screen.type === 'custom' && (() => {
+        const optBlock = (screen.blocks || []).find((b) => b.type === 'options')
+        if (!optBlock) return null
+        return (
+          <FlowEditor
+            screen={{ ...screen, saveAs: optBlock.saveAs, options: optBlock.options, type: optBlock.multi ? 'multi-select' : 'single-select' }}
+            screens={screens}
+            patch={patch}
+            variantCopy={variantCopy}
+          />
+        )
+      })()}
 
       {has('steps') && (
         <Section title="Loader">

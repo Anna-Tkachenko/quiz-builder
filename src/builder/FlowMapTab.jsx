@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
-import { TYPE_META } from './meta'
+import { TYPE_META, screenTitleOf } from './meta'
 import { interpolate, variantScreens } from '../quiz/engine'
 
 // 🗺️ Flow map — the quiz as a diagram: screens in order, branch arrows per
@@ -165,7 +165,7 @@ export default function FlowMapTab({ quiz, onOpen }) {
                   <span className="text-2xl">{meta.icon}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-extrabold text-slate-800">
-                      {t(s.title)?.trim() || s.id}
+                      {t(screenTitleOf(s))?.trim() || s.id}
                     </span>
                     <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-400">
                       {meta.label}

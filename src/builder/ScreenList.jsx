@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TYPE_META } from './meta'
+import { TYPE_META, screenTitleOf } from './meta'
 import { interpolate } from '../quiz/engine'
 
 // Left pane: ordered screen list. Drag to reorder + ▲▼ fallback,
@@ -52,8 +52,8 @@ export default function ScreenList({
               <span className="text-lg">{meta.icon}</span>
               <div className="min-w-0 flex-1">
                 <div className={`truncate text-[13px] font-bold ${selected ? 'text-indigo-700' : 'text-slate-700'}`}>
-                  {s.title
-                    ? interpolate(s.title, {}, quiz.variants?.default?.copy).replace(/\s{2,}/g, ' ').trim() || s.id
+                  {screenTitleOf(s)
+                    ? interpolate(screenTitleOf(s), {}, quiz.variants?.default?.copy).replace(/\s{2,}/g, ' ').trim() || s.id
                     : s.id}
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">{meta.label}</div>

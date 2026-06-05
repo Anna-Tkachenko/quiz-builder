@@ -227,6 +227,8 @@ export default function Builder() {
                 screens={quiz.screens}
                 variantParam={quiz.variantParam}
                 variantCopy={quiz.variants?.default?.copy}
+                library={quiz.elementLibrary || []}
+                onLibraryChange={(lib) => setQuiz((q) => ({ ...q, elementLibrary: lib }))}
                 patch={(p) => patchScreen(selectedScreen.id, p)}
               />
             )}

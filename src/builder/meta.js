@@ -9,6 +9,15 @@ export const TYPE_META = {
   text: { icon: '✍️', label: 'Text input' },
   email: { icon: '✉️', label: 'Email' },
   result: { icon: '🏆', label: 'Result' },
+  custom: { icon: '🧩', label: 'Custom (blank)' },
+}
+
+// Best-effort display title for any screen (custom screens keep their
+// title in a text block).
+export function screenTitleOf(screen) {
+  if (screen.title) return String(screen.title)
+  const titleBlock = screen.blocks?.find((b) => b.type === 'text' && b.style === 'title' && b.text)
+  return titleBlock ? String(titleBlock.text) : ''
 }
 
 export function newScreen(type, id) {
@@ -30,6 +39,15 @@ export function newScreen(type, id) {
       return { ...base, saveAs: 'email', title: 'Where should we send it?', placeholder: 'you@example.com', privacy: 'No spam, ever.', cta: 'Submit' }
     case 'result':
       return { ...base, emoji: '🎉', title: 'Your result', subtitle: 'Built from the answers.', items: [], cta: 'Continue →', redirect: true }
+    case 'custom':
+      return {
+        ...base,
+        blocks: [
+          { id: 'e1', type: 'text', style: 'title', text: 'Your custom screen' },
+          { id: 'e2', type: 'text', style: 'subtitle', text: 'Add, customize and reorder elements below.' },
+          { id: 'e3', type: 'button', label: 'Continue' },
+        ],
+      }
     default:
       return base
   }

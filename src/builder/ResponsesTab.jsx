@@ -134,10 +134,15 @@ function ResponsesTable({ responses, fmt, quizzes }) {
   const [openId, setOpenId] = useState(null)
 
   // map a saveAs variable back to its question title for the detail view
+  // (custom screens keep saveAs inside their element blocks)
   const questionFor = (quizId, key) => {
     const quiz = quizzes.find((q) => q.id === quizId)
-    const screen = quiz?.screens.find((s) => s.saveAs === key)
-    return screen ? String(screen.title || screen.id).replace(/\{\{[^}]*\}\}/g, '…') : key
+    const screen = quiz?.screens.find(
+      (s) => s.saveAs === key || s.blocks?.some((b) => b.saveAs === key)
+    )
+    if (!screen) return key
+    const title = screen.title || screen.blocks?.find((b) => b.type === 'text' && b.style === 'title')?.text || screen.id
+    return String(title).replace(/\{\{[^}]*\}\}/g, '…')
   }
 
   return (

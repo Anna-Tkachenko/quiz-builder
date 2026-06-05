@@ -8,6 +8,7 @@ import LoaderScreen from './screens/LoaderScreen'
 import TextInputScreen from './screens/TextInputScreen'
 import EmailScreen from './screens/EmailScreen'
 import ResultScreen from './screens/ResultScreen'
+import CustomScreen from './screens/CustomScreen'
 
 // One component per screen type — the whole contract of the renderer.
 const SCREEN_COMPONENTS = {
@@ -19,6 +20,7 @@ const SCREEN_COMPONENTS = {
   text: TextInputScreen,
   email: EmailScreen,
   result: ResultScreen,
+  custom: CustomScreen,
 }
 
 // THE renderer. Used standalone at `/` and mounted inside the builder's
@@ -73,14 +75,15 @@ export default function QuizPlayer({ quiz, params = {}, embedded = false, onEven
     if (!embedded && url) window.location.assign(url)
   }
 
-  const advance = (value) => {
-    const nextAnswers =
-      screen.saveAs && value !== undefined ? { ...answers, [screen.saveAs]: value } : answers
+  // Save a map of {variable: value} (custom screens can carry several
+  // inputs), then move on. advance() is the single-value convenience.
+  const advanceWith = (map) => {
+    const nextAnswers = { ...answers, ...map }
     const nextCtx = { ...params, ...nextAnswers, sessionId, variantKey }
     setAnswers(nextAnswers)
-    if (value !== undefined) {
-      onEvent?.({ type: 'answer', sessionId, screenId: screen.id, saveAs: screen.saveAs, value })
-    }
+    Object.entries(map).forEach(([saveAs, value]) =>
+      onEvent?.({ type: 'answer', sessionId, screenId: screen.id, saveAs, value })
+    )
     const nextId = getNext(screen, quiz, variant, nextCtx)
     if (nextId) {
       setHistory((h) => [...h, screen.id])
@@ -89,6 +92,9 @@ export default function QuizPlayer({ quiz, params = {}, embedded = false, onEven
       complete(nextCtx)
     }
   }
+
+  const advance = (value) =>
+    advanceWith(screen.saveAs && value !== undefined ? { [screen.saveAs]: value } : {})
 
   const goBack = () => {
     if (history.length === 0) return
@@ -149,6 +155,7 @@ export default function QuizPlayer({ quiz, params = {}, embedded = false, onEven
             ctx={ctx}
             theme={theme}
             onAnswer={advance}
+            onAnswerMap={advanceWith}
             onNext={() => advance(undefined)}
             onComplete={() => complete(ctx)}
           />
