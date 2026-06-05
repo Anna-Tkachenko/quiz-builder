@@ -5,8 +5,9 @@ import { interpolate } from '../quiz/engine'
 // Left pane: ordered screen list. Drag to reorder + ▲▼ fallback,
 // add / duplicate / delete. "Theme & settings" is a special entry.
 export default function ScreenList({
-  quiz, selectedId, onSelect, onMove, onAdd, onDelete, onDuplicate,
+  quiz, selectedId, onSelect, onMove, onAdd, onDelete, onDuplicate, onAddFromLibrary,
 }) {
+  const screenLibrary = quiz.screenLibrary || []
   const [dragIdx, setDragIdx] = useState(null)
   const [overIdx, setOverIdx] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -92,6 +93,24 @@ export default function ScreenList({
                 <span>{m.icon}</span> {m.label}
               </button>
             ))}
+            {screenLibrary.length > 0 && (
+              <>
+                <p className="col-span-2 mt-1 text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                  🧰 Your screen library
+                </p>
+                {screenLibrary.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => { onAddFromLibrary(item); setShowAdd(false) }}
+                    className="col-span-2 flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2 py-2 text-left text-[12px] font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                  >
+                    <span>{TYPE_META[item.screen.type]?.icon ?? '🧩'}</span>
+                    <span className="truncate">{item.name}</span>
+                  </button>
+                ))}
+              </>
+            )}
             <button
               type="button"
               onClick={() => setShowAdd(false)}

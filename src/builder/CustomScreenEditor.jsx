@@ -1,34 +1,11 @@
 import { useState } from 'react'
 import { Section } from './fields'
-import { isImageValue, readImageFile } from '../lib/visual'
+import { ELEMENT_TYPES, elementMeta, elInputCls as inputCls, elPill as pill } from './elementMeta'
+import { ElementFields } from './ElementFields'
 
 // 🧩 Editor for custom screens: an ordered element list. Each element edits
 // inline; elements can be saved to the quiz's ELEMENT LIBRARY (named,
 // pre-customized, reusable across screens — stored in the quiz JSON).
-
-const ELEMENT_TYPES = [
-  { key: 'badge', icon: '🏷', label: 'Badge', make: (id) => ({ id, type: 'badge', text: '✨ New badge' }) },
-  { key: 'text', icon: '𝐓', label: 'Text', make: (id) => ({ id, type: 'text', style: 'paragraph', text: '' }) },
-  { key: 'image', icon: '🖼', label: 'Image', make: (id) => ({ id, type: 'image', value: '', size: 'md', align: 'center' }) },
-  { key: 'single', icon: '☝️', label: 'Choice (one)', make: (id) => ({ id, type: 'options', multi: false, layout: 'list', saveAs: id, options: [{ label: 'Option A', icon: '🅰️' }, { label: 'Option B', icon: '🅱️' }] }) },
-  { key: 'multi', icon: '✅', label: 'Choice (many)', make: (id) => ({ id, type: 'options', multi: true, layout: 'list', saveAs: id, options: [{ label: 'Option A', icon: '🅰️' }, { label: 'Option B', icon: '🅱️' }] }) },
-  { key: 'input', icon: '✍️', label: 'Text input', make: (id) => ({ id, type: 'input', inputType: 'text', placeholder: 'Type here…', saveAs: id }) },
-  { key: 'email', icon: '✉️', label: 'Email input', make: (id) => ({ id, type: 'input', inputType: 'email', placeholder: 'you@example.com', saveAs: 'email', privacy: 'No spam, ever.' }) },
-  { key: 'button', icon: '🔘', label: 'Button', make: (id) => ({ id, type: 'button', label: 'Continue' }) },
-]
-
-const elementMeta = (b) => {
-  if (b.type === 'options') return { icon: b.multi ? '✅' : '☝️', label: b.multi ? 'Choice (many)' : 'Choice (one)' }
-  if (b.type === 'input') return { icon: b.inputType === 'email' ? '✉️' : '✍️', label: b.inputType === 'email' ? 'Email input' : 'Text input' }
-  return ELEMENT_TYPES.find((t) => t.key === b.type) || { icon: '❔', label: b.type }
-}
-
-const inputCls =
-  'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium outline-none focus:border-indigo-400'
-const pill = (active) =>
-  `flex-1 rounded-lg border py-1 text-[11px] font-bold transition-colors ${
-    active ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-  }`
 
 export default function CustomScreenEditor({ screen, patch, library, onLibraryChange }) {
   const blocks = screen.blocks || []
@@ -192,104 +169,3 @@ export default function CustomScreenEditor({ screen, patch, library, onLibraryCh
   )
 }
 
-function ElementFields({ block: b, patchBlock }) {
-  switch (b.type) {
-    case 'badge':
-      return <input type="text" value={b.text ?? ''} onChange={(e) => patchBlock({ text: e.target.value })} placeholder="Badge text" className={inputCls} />
-    case 'text':
-      return (
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-1">
-            {[['title', 'Title'], ['subtitle', 'Subtitle'], ['paragraph', 'Paragraph']].map(([v, l]) => (
-              <button key={v} type="button" onClick={() => patchBlock({ style: v })} className={pill((b.style || 'paragraph') === v)}>{l}</button>
-            ))}
-            <button type="button" onClick={() => patchBlock({ align: b.align === 'center' ? undefined : 'center' })}
-              className={pill(b.align === 'center')} title="Center text">⏺ center</button>
-          </div>
-          <textarea value={b.text ?? ''} rows={2} onChange={(e) => patchBlock({ text: e.target.value })}
-            placeholder="Text… ({{variables}} work)" className={inputCls + ' resize-y'} />
-        </div>
-      )
-    case 'image':
-      return (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            {isImageValue(b.value) && <img src={b.value} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 object-cover" />}
-            <input type="text" value={b.value ?? ''} onChange={(e) => patchBlock({ value: e.target.value })}
-              placeholder="Image URL or emoji" className={inputCls} />
-            <label className="shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:border-indigo-300 hover:text-indigo-600">
-              🖼 File…
-              <input type="file" accept="image/*" className="hidden"
-                onChange={(e) => { readImageFile(e.target.files?.[0], (v) => patchBlock({ value: v })); e.target.value = '' }} />
-            </label>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 gap-1">
-              {[['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['full', 'Full']].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => patchBlock({ size: v })} className={pill((b.size || 'md') === v)}>{l}</button>
-              ))}
-            </div>
-            <div className="flex flex-1 gap-1">
-              {[['left', '⬅'], ['center', '⏺'], ['right', '➡']].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => patchBlock({ align: v })} className={pill((b.align || 'center') === v)}>{l}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    case 'options':
-      return (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 gap-1">
-              {[['list', '☰ List'], ['grid', '▦ Grid'], ['cards', '🃏 Cards']].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => patchBlock({ layout: v })} className={pill((b.layout || 'list') === v)}>{l}</button>
-              ))}
-            </div>
-            <input type="text" value={b.saveAs ?? ''} onChange={(e) => patchBlock({ saveAs: e.target.value })}
-              placeholder="variable" title="Save answer as variable" className={inputCls + ' max-w-[120px] font-mono text-[11px]'} />
-          </div>
-          {(b.options || []).map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input type="text" value={opt.icon ?? ''} placeholder="🙂" title="Emoji or image URL"
-                onChange={(e) => patchBlock({ options: b.options.map((o, j) => (j === i ? { ...o, icon: e.target.value } : o)) })}
-                className="w-12 rounded-lg border border-slate-200 bg-white py-1.5 text-center text-[13px] outline-none focus:border-indigo-400" />
-              <input type="text" value={opt.label ?? ''} placeholder="Option label"
-                onChange={(e) => patchBlock({ options: b.options.map((o, j) => (j === i ? { ...o, label: e.target.value } : o)) })}
-                className={inputCls} />
-              <button type="button" onClick={() => patchBlock({ options: b.options.filter((_, j) => j !== i) })}
-                className="px-1 text-slate-300 hover:text-rose-500">✕</button>
-            </div>
-          ))}
-          <button type="button" onClick={() => patchBlock({ options: [...(b.options || []), { label: '', icon: '' }] })}
-            className="rounded-lg border-2 border-dashed border-slate-200 py-1.5 text-[11px] font-bold text-slate-500 hover:border-indigo-300 hover:text-indigo-600">
-            + Add option
-          </button>
-        </div>
-      )
-    case 'input':
-      return (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 gap-1">
-              {[['text', '✍️ Text'], ['email', '✉️ Email']].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => patchBlock({ inputType: v })} className={pill((b.inputType || 'text') === v)}>{l}</button>
-              ))}
-            </div>
-            <input type="text" value={b.saveAs ?? ''} onChange={(e) => patchBlock({ saveAs: e.target.value })}
-              placeholder="variable" title="Save answer as variable" className={inputCls + ' max-w-[120px] font-mono text-[11px]'} />
-          </div>
-          <input type="text" value={b.placeholder ?? ''} onChange={(e) => patchBlock({ placeholder: e.target.value })}
-            placeholder="Placeholder text" className={inputCls} />
-          {b.inputType === 'email' && (
-            <input type="text" value={b.privacy ?? ''} onChange={(e) => patchBlock({ privacy: e.target.value })}
-              placeholder="Privacy line (optional)" className={inputCls} />
-          )}
-        </div>
-      )
-    case 'button':
-      return <input type="text" value={b.label ?? ''} onChange={(e) => patchBlock({ label: e.target.value })} placeholder="Button label" className={inputCls} />
-    default:
-      return null
-  }
-}

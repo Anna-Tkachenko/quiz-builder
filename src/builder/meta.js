@@ -12,6 +12,36 @@ export const TYPE_META = {
   custom: { icon: '🧩', label: 'Custom (blank)' },
 }
 
+// Convert a typed screen into a custom screen's element list — elements are
+// seeded from the type's content; logic (show/next) is preserved by the caller.
+export function screenToElements(screen) {
+  const els = []
+  let n = 1
+  const add = (b) => els.push({ id: `e${n++}`, ...b })
+  const center = ['hero', 'message', 'result'].includes(screen.type)
+  const centered = center ? { align: 'center' } : {}
+  if (screen.badge) add({ type: 'badge', text: screen.badge })
+  if (screen.emoji) add({ type: 'image', value: screen.emoji, size: screen.visualSize || 'md', align: screen.visualAlign || 'center' })
+  if (screen.title) add({ type: 'text', style: 'title', text: screen.title, ...centered })
+  if (screen.subtitle) add({ type: 'text', style: 'subtitle', text: screen.subtitle, ...centered })
+  if (screen.text) add({ type: 'text', style: 'paragraph', text: screen.text, ...centered })
+  if (screen.hint) add({ type: 'text', style: 'paragraph', text: screen.hint })
+  for (const x of screen.extraBlocks || []) {
+    if (x.type === 'image') add({ type: 'image', value: x.value, size: x.size || 'md', align: x.align || 'center' })
+    else add({ type: 'text', style: 'paragraph', text: x.value })
+  }
+  if (screen.type === 'single-select')
+    add({ type: 'options', multi: false, layout: screen.layout || 'list', saveAs: screen.saveAs, options: screen.options || [] })
+  if (screen.type === 'multi-select')
+    add({ type: 'options', multi: true, layout: screen.layout || 'list', saveAs: screen.saveAs, options: screen.options || [] })
+  if (screen.type === 'text')
+    add({ type: 'input', inputType: 'text', placeholder: screen.placeholder, saveAs: screen.saveAs })
+  if (screen.type === 'email')
+    add({ type: 'input', inputType: 'email', placeholder: screen.placeholder, saveAs: screen.saveAs, privacy: screen.privacy })
+  if (screen.type !== 'single-select') add({ type: 'button', label: screen.cta || 'Continue' })
+  return els
+}
+
 // Best-effort display title for any screen (custom screens keep their
 // title in a text block).
 export function screenTitleOf(screen) {

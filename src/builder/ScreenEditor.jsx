@@ -9,12 +9,13 @@ const LAYOUTS = [
 ]
 
 import { interpolate } from '../quiz/engine'
-import { isImageValue, readImageFile } from '../lib/visual'
 import CustomScreenEditor from './CustomScreenEditor'
-import { screenTitleOf } from './meta'
+import { screenTitleOf, screenToElements } from './meta'
 
 // Middle pane: edit the selected screen. Field set depends on screen.type.
-export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy, library = [], onLibraryChange }) {
+export default function ScreenEditor({ screen, patch, screens = [], variantParam, variantCopy, library = [], onLibraryChange, screenLibrary = [], onScreenLibraryChange }) {
+  const [savingScreen, setSavingScreen] = useState(false)
+  const [screenName, setScreenName] = useState('')
   const meta = TYPE_META[screen.type] || { icon: '❔', label: screen.type }
   const has = (k) => FIELD_MAP[screen.type]?.includes(k)
 
@@ -40,11 +41,73 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
     <div className="p-5">
       <div className="mb-5 flex items-center gap-2.5">
         <span className="text-2xl">{meta.icon}</span>
-        <div>
+        <div className="flex-1">
           <h2 className="text-[15px] font-extrabold text-slate-800">{meta.label}</h2>
           <p className="font-mono text-[11px] text-slate-400">id: {screen.id}</p>
         </div>
+        {['hero', 'single-select', 'multi-select', 'message', 'text', 'email'].includes(screen.type) && (
+          <button
+            type="button"
+            title="Turn this screen into freely composable elements (adds the elements of this type, then add any others)"
+            onClick={() =>
+              patch({
+                type: 'custom',
+                blocks: screenToElements(screen),
+                badge: undefined, emoji: undefined, title: undefined, subtitle: undefined,
+                text: undefined, hint: undefined, placeholder: undefined, privacy: undefined,
+                cta: undefined, options: undefined, layout: undefined, saveAs: undefined,
+                items: undefined, blockOrder: undefined, extraBlocks: undefined,
+                visualSize: undefined, visualAlign: undefined, conditionalText: undefined,
+              })
+            }
+            className="rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          >
+            🧩 Customize elements
+          </button>
+        )}
+        <button
+          type="button"
+          title="Save this whole screen as a reusable template (🧰 Builder library)"
+          onClick={() => { setSavingScreen((v) => !v); setScreenName('') }}
+          className="rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+        >
+          💾 Save screen
+        </button>
       </div>
+
+      {savingScreen && (
+        <div className="mb-5 flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3">
+          <input
+            autoFocus
+            type="text"
+            value={screenName}
+            onChange={(e) => setScreenName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && screenName.trim()) {
+                const def = structuredClone(screen)
+                delete def.id
+                onScreenLibraryChange([...screenLibrary, { id: `scr-${screenLibrary.length + 1}`, name: screenName.trim(), screen: def }])
+                setSavingScreen(false)
+              }
+            }}
+            placeholder="Template name — e.g. “NPS question”, “Brand hero”"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium outline-none focus:border-indigo-400"
+          />
+          <button
+            type="button"
+            disabled={!screenName.trim()}
+            onClick={() => {
+              const def = structuredClone(screen)
+              delete def.id
+              onScreenLibraryChange([...screenLibrary, { id: `scr-${screenLibrary.length + 1}`, name: screenName.trim(), screen: def }])
+              setSavingScreen(false)
+            }}
+            className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-30"
+          >
+            Save
+          </button>
+        </div>
+      )}
 
       {screen.type !== 'custom' && (
         <Section title="Content">
@@ -69,7 +132,6 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         />
       )}
 
-      {has('blocks') && <BlocksEditor screen={screen} patch={patch} />}
 
       {has('layout') && (
         <Section title="Layout">
@@ -153,199 +215,6 @@ export default function ScreenEditor({ screen, patch, screens = [], variantParam
         </div>
       </details>
     </div>
-  )
-}
-
-// Screen layout: drag (or ▲▼) the content blocks into the order they should
-// render. The visual/image blocks get size + position controls, and any
-// screen can take extra text/image blocks via "+ Add block".
-function SizeAlignControls({ size, align, onSize, onAlign }) {
-  const pill = (active) =>
-    `flex-1 rounded-lg border py-1 text-[11px] font-bold transition-colors ${
-      active ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-    }`
-  return (
-    <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2">
-      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Size</span>
-      <div className="flex flex-1 gap-1">
-        {[['sm', 'S'], ['md', 'M'], ['lg', 'L'], ['full', 'Full']].map(([v, l]) => (
-          <button key={v} type="button" onClick={() => onSize(v)} className={pill(size === v)}>{l}</button>
-        ))}
-      </div>
-      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Position</span>
-      <div className="flex flex-1 gap-1">
-        {[['left', '⬅'], ['center', '⏺'], ['right', '➡']].map(([v, l]) => (
-          <button key={v} type="button" onClick={() => onAlign(v)} className={pill(align === v)} title={v}>{l}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function BlocksEditor({ screen, patch }) {
-  const supported = BLOCK_MAP[screen.type] || []
-  const extras = screen.extraBlocks || []
-  const extraKeys = extras.map((b) => `x:${b.id}`)
-  const declared = (screen.blockOrder || []).filter(
-    (k) => supported.includes(k) || extraKeys.includes(k)
-  )
-  const order = [
-    ...declared,
-    ...supported.filter((k) => !declared.includes(k)),
-    ...extraKeys.filter((k) => !declared.includes(k)),
-  ]
-  const [dragIdx, setDragIdx] = useState(null)
-  const [overIdx, setOverIdx] = useState(null)
-  const fileFor = useState({})[0] // id -> input element
-
-  const move = (from, to) => {
-    if (to < 0 || to >= order.length || from === to) return
-    const next = [...order]
-    const [x] = next.splice(from, 1)
-    next.splice(to, 0, x)
-    patch({ blockOrder: next })
-  }
-
-  const patchExtra = (id, p) =>
-    patch({ extraBlocks: extras.map((b) => (b.id === id ? { ...b, ...p } : b)) })
-
-  const addExtra = (type) => {
-    let n = 1
-    while (extras.some((b) => b.id === `b${n}`)) n++
-    const id = `b${n}`
-    patch({
-      extraBlocks: [...extras, { id, type, value: '' }],
-      blockOrder: [...order, `x:${id}`],
-    })
-  }
-
-  const deleteExtra = (id) =>
-    patch({
-      extraBlocks: extras.filter((b) => b.id !== id),
-      blockOrder: order.filter((k) => k !== `x:${id}`),
-    })
-
-  if (supported.length < 2) return null
-
-  const inputCls =
-    'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium outline-none focus:border-indigo-400'
-
-  return (
-    <Section title="Screen layout (drag blocks to reorder)">
-      {order.map((key, i) => {
-        const extra = key.startsWith('x:') ? extras.find((b) => `x:${b.id}` === key) : null
-        if (key.startsWith('x:') && !extra) return null
-        const meta = extra
-          ? { icon: extra.type === 'image' ? '🖼' : '¶', label: extra.type === 'image' ? 'Image block' : 'Text block' }
-          : BLOCK_META[key]
-        const filled = extra ? !!extra.value : !!screen[meta.field]
-        return (
-          <div
-            key={key}
-            draggable
-            onDragStart={() => setDragIdx(i)}
-            onDragOver={(e) => { e.preventDefault(); setOverIdx(i) }}
-            onDragLeave={() => setOverIdx((o) => (o === i ? null : o))}
-            onDrop={() => { if (dragIdx !== null) move(dragIdx, i); setDragIdx(null); setOverIdx(null) }}
-            onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
-            className={`rounded-xl border bg-white transition-shadow ${
-              overIdx === i && dragIdx !== i ? 'border-indigo-300 ring-2 ring-indigo-200' : 'border-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 px-3 py-2">
-              <span className="cursor-grab text-slate-300" title="Drag to reorder">⠿</span>
-              <span className="w-5 text-center">{meta.icon}</span>
-              <span className={`flex-1 text-[12.5px] font-bold ${filled ? 'text-slate-700' : 'text-slate-300'}`}>
-                {meta.label}
-                {!filled && !extra && <span className="ml-1.5 font-medium">(empty — fill it in Content above)</span>}
-              </span>
-              <button type="button" disabled={i === 0} onClick={() => move(i, i - 1)}
-                className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▲</button>
-              <button type="button" disabled={i === order.length - 1} onClick={() => move(i, i + 1)}
-                className="px-1 text-[10px] text-slate-300 hover:text-slate-600 disabled:opacity-30">▼</button>
-              {extra && (
-                <button type="button" title="Delete block" onClick={() => deleteExtra(extra.id)}
-                  className="px-1 text-slate-300 transition-colors hover:text-rose-500">✕</button>
-              )}
-            </div>
-
-            {/* inline value editor for extra blocks */}
-            {extra && extra.type === 'text' && (
-              <div className="border-t border-slate-100 px-3 py-2">
-                <textarea
-                  value={extra.value}
-                  rows={2}
-                  onChange={(e) => patchExtra(extra.id, { value: e.target.value })}
-                  placeholder="Extra text… ({{variables}} work here too)"
-                  className={inputCls + ' resize-y'}
-                />
-              </div>
-            )}
-            {extra && extra.type === 'image' && (
-              <div className="flex items-center gap-2 border-t border-slate-100 px-3 py-2">
-                {isImageValue(extra.value) && (
-                  <img src={extra.value} alt="" className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 object-cover" />
-                )}
-                <input
-                  type="text"
-                  value={extra.value}
-                  onChange={(e) => patchExtra(extra.id, { value: e.target.value })}
-                  placeholder="Image URL or emoji"
-                  className={inputCls}
-                />
-                <label className="shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600">
-                  🖼 File…
-                  <input
-                    ref={(el) => { fileFor[extra.id] = el }}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      readImageFile(e.target.files?.[0], (dataUri) => patchExtra(extra.id, { value: dataUri }))
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-              </div>
-            )}
-
-            {key === 'visual' && filled && (
-              <SizeAlignControls
-                size={screen.visualSize || 'md'}
-                align={screen.visualAlign || ''}
-                onSize={(v) => patch({ visualSize: v })}
-                onAlign={(v) => patch({ visualAlign: v })}
-              />
-            )}
-            {extra && extra.type === 'image' && filled && (
-              <SizeAlignControls
-                size={extra.size || 'md'}
-                align={extra.align || ''}
-                onSize={(v) => patchExtra(extra.id, { size: v })}
-                onAlign={(v) => patchExtra(extra.id, { align: v })}
-              />
-            )}
-          </div>
-        )
-      })}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => addExtra('text')}
-          className="flex-1 rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
-        >
-          + Add text block
-        </button>
-        <button
-          type="button"
-          onClick={() => addExtra('image')}
-          className="flex-1 rounded-xl border-2 border-dashed border-slate-200 py-2 text-[12px] font-bold text-slate-500 transition-colors hover:border-indigo-300 hover:text-indigo-600"
-        >
-          + Add image block
-        </button>
-      </div>
-    </Section>
   )
 }
 
@@ -507,32 +376,14 @@ function ConditionalTextEditor({ screen, patch, vars, screens }) {
 }
 
 const FIELD_MAP = {
-  hero: ['badge', 'emoji', 'subtitle', 'cta', 'blocks'],
-  'single-select': ['emoji', 'subtitle', 'layout', 'options', 'saveAs', 'blocks'],
-  'multi-select': ['emoji', 'subtitle', 'hint', 'layout', 'options', 'saveAs', 'cta', 'blocks'],
-  message: ['emoji', 'text', 'cta', 'blocks'],
+  hero: ['badge', 'emoji', 'subtitle', 'cta'],
+  'single-select': ['emoji', 'subtitle', 'layout', 'options', 'saveAs'],
+  'multi-select': ['emoji', 'subtitle', 'hint', 'layout', 'options', 'saveAs', 'cta'],
+  message: ['emoji', 'text', 'cta'],
   loader: ['steps'],
-  text: ['emoji', 'subtitle', 'placeholder', 'saveAs', 'cta', 'blocks'],
-  email: ['emoji', 'subtitle', 'placeholder', 'privacy', 'saveAs', 'cta', 'blocks'],
-  result: ['emoji', 'subtitle', 'items', 'cta', 'blocks'],
-}
-
-// Which content blocks a screen type composes, in default order.
-const BLOCK_MAP = {
-  hero: ['visual', 'title', 'subtitle'],
-  'single-select': ['visual', 'title', 'subtitle'],
-  'multi-select': ['visual', 'title', 'subtitle'],
-  message: ['visual', 'title', 'text'],
-  text: ['visual', 'title', 'subtitle'],
-  email: ['visual', 'title', 'subtitle'],
-  result: ['visual', 'title', 'subtitle'],
-}
-
-const BLOCK_META = {
-  visual: { icon: '🖼', label: 'Visual (emoji / image)', field: 'emoji' },
-  title: { icon: '𝐓', label: 'Title', field: 'title' },
-  subtitle: { icon: '≡', label: 'Subtitle', field: 'subtitle' },
-  text: { icon: '¶', label: 'Text', field: 'text' },
+  text: ['emoji', 'subtitle', 'placeholder', 'saveAs', 'cta'],
+  email: ['emoji', 'subtitle', 'placeholder', 'privacy', 'saveAs', 'cta'],
+  result: ['emoji', 'subtitle', 'items', 'cta'],
 }
 
 function OptionsEditor({ screen, patch }) {

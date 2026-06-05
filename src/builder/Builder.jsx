@@ -11,6 +11,7 @@ import JsonTab from './JsonTab'
 import LibraryTab from './LibraryTab'
 import FlowMapTab from './FlowMapTab'
 import HowToTab from './HowToTab'
+import ComponentsTab from './ComponentsTab'
 
 // The CMS. 3 panes: screen list / editor / live phone preview.
 export default function Builder() {
@@ -132,6 +133,22 @@ export default function Builder() {
     syncFromStorage(true)
   }
 
+  // Insert a saved screen template (🧰 Builder library) after the selection.
+  const addScreenFromLibrary = (entry) => {
+    setQuiz((q) => {
+      const id = uniqueId(q, entry.screen.type || 'screen')
+      const screen = structuredClone(entry.screen)
+      screen.id = id
+      const afterId = selectedScreen?.id ?? q.screens[q.screens.length - 1]?.id
+      const i = q.screens.findIndex((s) => s.id === afterId)
+      const screens = [...q.screens]
+      screens.splice(i >= 0 ? i + 1 : screens.length, 0, screen)
+      setSelectedId(id)
+      return { ...q, screens, variants: addToVariants(q, id, afterId) }
+    })
+    setTab('build')
+  }
+
   return (
     <div className="flex h-dvh flex-col bg-slate-100 text-slate-800">
       {/* Top bar */}
@@ -147,7 +164,7 @@ export default function Builder() {
           className="w-72 rounded-lg border border-transparent px-2 py-1 text-[13px] font-semibold text-slate-500 outline-none transition-colors hover:border-slate-200 focus:border-indigo-300 focus:text-slate-800"
         />
         <nav className="mx-auto flex gap-1 rounded-full bg-slate-100 p-1">
-          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['library', '📚 Library'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['howto', '📖 How to']].map(([key, label]) => (
+          {[['build', '🛠️ Build'], ['flow', '🗺️ Flow'], ['components', '🧰 Builder library'], ['library', '📚 Quizzes'], ['json', '{ } JSON'], ['responses', '📊 Responses'], ['howto', '📖 How to']].map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -204,6 +221,8 @@ export default function Builder() {
         <JsonTab quiz={quiz} setQuiz={setQuiz} />
       ) : tab === 'howto' ? (
         <HowToTab />
+      ) : tab === 'components' ? (
+        <ComponentsTab quiz={quiz} setQuiz={setQuiz} onUseScreen={addScreenFromLibrary} />
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[270px_minmax(360px,1fr)_440px]">
           <aside className="min-h-0 border-r border-slate-200 bg-white">
@@ -215,6 +234,7 @@ export default function Builder() {
               onAdd={addScreen}
               onDelete={deleteScreen}
               onDuplicate={duplicateScreen}
+              onAddFromLibrary={addScreenFromLibrary}
             />
           </aside>
           <main className="min-h-0 overflow-y-auto">
@@ -229,6 +249,8 @@ export default function Builder() {
                 variantCopy={quiz.variants?.default?.copy}
                 library={quiz.elementLibrary || []}
                 onLibraryChange={(lib) => setQuiz((q) => ({ ...q, elementLibrary: lib }))}
+                screenLibrary={quiz.screenLibrary || []}
+                onScreenLibraryChange={(lib) => setQuiz((q) => ({ ...q, screenLibrary: lib }))}
                 patch={(p) => patchScreen(selectedScreen.id, p)}
               />
             )}
